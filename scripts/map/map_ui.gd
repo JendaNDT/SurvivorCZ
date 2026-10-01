@@ -115,28 +115,27 @@ class RegionCard extends Control:
 				var s := tex.get_size() / Baker.SCALE * 0.72
 				draw_texture_rect(tex, Rect2(c - s * 0.5, s), false)
 			var nm: String = EnemyDefs.ENEMIES[eid].name
-			var nfs := 13 if Art.text_width(nm, 13) < 112 else 11
-			draw_string(Art.font, Vector2(c.x - 58, c.y + 54), nm, HORIZONTAL_ALIGNMENT_CENTER, 116, nfs, ink)
+			draw_multiline_string(Art.font, Vector2(c.x - 58, c.y + 52), nm, HORIZONTAL_ALIGNMENT_CENTER, 116, 13, 2, ink)
 		# info
 		var tier := Game.tier_for(r.id)
 		var dur := Regions.duration_for_tier(tier)
-		var yy := 318.0
+		var yy := 322.0
 		draw_string(Art.font, Vector2(tx, yy), "Přežij %d:%02d, pak poraz bosse" % [int(dur) / 60, int(dur) % 60], HORIZONTAL_ALIGNMENT_LEFT, tw, 18, ink)
-		draw_string(Art.font, Vector2(tx, yy + 28), "Síla nepřátel:", HORIZONTAL_ALIGNMENT_LEFT, tw, 18, ink)
+		draw_string(Art.font, Vector2(tx, yy + 25), "Síla nepřátel:", HORIZONTAL_ALIGNMENT_LEFT, tw, 18, ink)
 		var sx := tx + Art.text_width("Síla nepřátel: ", 18) + 6.0
 		for i in 5:
 			var filled := i <= int(tier / 3.0)
-			var c := Vector2(sx + i * 22, yy + 22)
+			var c := Vector2(sx + i * 22, yy + 19)
 			Art.safe_poly(self, Art.grow(Art.ellipse(c, 7, 7, 12), 1.5), Art.OUTLINE)
 			Art.safe_poly(self, Art.ellipse(c, 7, 7, 12), Color("e2382c") if filled else Color("c9b894"))
 		if st == "conquered":
 			var n := Game.stars(r.id)
-			draw_string(Art.font, Vector2(tx, yy + 58), "Získané hvězdy:", HORIZONTAL_ALIGNMENT_LEFT, tw, 18, ink)
+			draw_string(Art.font, Vector2(tx, yy + 50), "Získané hvězdy:", HORIZONTAL_ALIGNMENT_LEFT, tw, 18, ink)
 			for i in 3:
-				var c := Vector2(tx + Art.text_width("Získané hvězdy: ", 18) + 14 + i * 26, yy + 51)
+				var c := Vector2(tx + Art.text_width("Získané hvězdy: ", 18) + 14 + i * 26, yy + 43)
 				Art.icon_star(self, c, 11, i < n)
 		elif st == "locked":
-			draw_string(Art.font, Vector2(tx, yy + 58), "Nejdřív dobyj některý sousední kraj.", HORIZONTAL_ALIGNMENT_LEFT, tw, 17, Color("a03a2a"))
+			draw_string(Art.font, Vector2(tx, yy + 50), "Nejdřív dobyj některý sousední kraj.", HORIZONTAL_ALIGNMENT_LEFT, tw, 17, Color("a03a2a"))
 
 
 ## Zbrojnice – trvalá vylepšení za zlato.

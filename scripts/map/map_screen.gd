@@ -227,7 +227,7 @@ func show_region(id: String) -> void:
 	board.m = self
 	board.region = r
 	board.st = st
-	board.size = Vector2(minf(700.0, size.x - 40), minf(470.0, size.y - 30))
+	board.size = Vector2(minf(700.0, size.x - 40), minf(480.0, size.y - 24))
 	board.position = (size - board.size) * 0.5 + Vector2(0, 8)
 	popup_layer.add_child(board)
 	_pop(board)
@@ -246,7 +246,7 @@ func show_region(id: String) -> void:
 		bt = CCButton.make("ÚTOK!", Art.BTN_GREEN, Vector2(300, 82), 38)
 		bt.icon_key = "ui:swords"
 		bt.icon_scale = 0.55
-	bt.position = Vector2((board.size.x - bt.size.x) * 0.5, board.size.y - bt.size.y - 22)
+	bt.position = Vector2((board.size.x - bt.size.x) * 0.5, board.size.y - bt.size.y - 12)
 	bt.pressed.connect(func():
 		Sfx.play("warn", -6.0)
 		attack.emit(id))
