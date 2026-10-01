@@ -2,6 +2,8 @@
 
 Godot 4.5, GDScript, renderer **GL Compatibility**, cílová platforma Android (na šířku, 1280×720, stretch `canvas_items` + `expand`).
 
+Obecný návrh survivor hry (mechaniky, stat systém, milníky) je v `docs/survivor-hra-design.md`.
+
 ## Zásady
 
 - **Žádné obrázky ani převzatá grafika.** Vše se kreslí v kódu přes `Art` (scripts/autoload/art.gd) a peče do textur přes `Baker`. Nové kresby přidávej jako statické funkce `_<id>(ci, t)` do příslušného souboru ve `scripts/art/` (dispatch jde přes `Callable(Třída, "_" + id)`).
@@ -33,6 +35,17 @@ xvfb-run -a $G --path . --rendering-driver opengl3 res://scenes/dev/gallery.tscn
 ```
 
 Autoplay vypisuje každých 10 s úroveň, životy, zabití a zbraně – slouží k ladění balancu.
+
+Rychlá simulace celého kraje bez grafiky (~20 s):
+
+```bash
+$G --headless --path . --fixed-fps 30 res://scenes/main.tscn -- --battle=MSK --autoplay --tier=13 --meta=2 --quit-at-end
+```
+
+`--meta=N` nastaví všechna vylepšení ze Zbrojnice na úroveň N (přepisuje uložený postup v tomto prostředí).
+
+- GDScript ve více vláknech najednou (WorkerThreadPool) poškozoval paměť – na pozadí používej jedno `Thread`.
+- Pole, ze kterých se během procházení může mazat (střely, zóny), procházej přes `.duplicate()`.
 
 ## Na konci každé session
 

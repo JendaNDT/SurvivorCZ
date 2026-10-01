@@ -65,6 +65,9 @@ func _ready() -> void:
 			Game.data.intro_seen = true
 		elif a.begins_with("--gold="):
 			Game.data.gold = int(a.substr(7))
+		elif a.begins_with("--meta="):
+			for id in Upgrades.META.keys():
+				Game.data.upgrades[id] = mini(int(a.substr(7)), Upgrades.META[id].max)
 		elif a.begins_with("--conquer="):
 			for id in a.substr(10).split(","):
 				if id != "":

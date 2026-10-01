@@ -290,7 +290,7 @@ func visible() -> Array:
 
 func _shoot(e: Enemy, dir: Vector2) -> void:
 	var kind: String = e.def.get("proj", "kapka")
-	b.projectiles.enemy_shot(kind, e.position, dir * 235.0, e.dmg * 1.1)
+	b.projectiles.enemy_shot(kind, e.position, dir * 235.0, e.dmg * 0.9)
 	Sfx.play("enemy_shot", -8.0)
 
 

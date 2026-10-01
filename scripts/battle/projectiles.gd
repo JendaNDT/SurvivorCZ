@@ -151,10 +151,9 @@ func update(delta: float) -> void:
 
 func _update_player_shots(delta: float) -> void:
 	var view: Rect2 = b.view_rect().grow(300.0)
-	var i := shots.size() - 1
-	while i >= 0:
-		var p: Proj = shots[i]
-		i -= 1
+	for p: Proj in shots.duplicate():
+		if not shots.has(p):
+			continue
 		p.life -= delta
 		if p.lob:
 			p.t += delta
@@ -200,10 +199,9 @@ func _update_player_shots(delta: float) -> void:
 
 func _update_enemy_shots(delta: float) -> void:
 	var pp: Vector2 = b.player.position
-	var i := enemy_shots.size() - 1
-	while i >= 0:
-		var p: Proj = enemy_shots[i]
-		i -= 1
+	for p: Proj in enemy_shots.duplicate():
+		if not enemy_shots.has(p):
+			continue
 		p.life -= delta
 		p.pos += p.vel * delta
 		p.spr.position = p.pos
@@ -217,10 +215,10 @@ func _update_enemy_shots(delta: float) -> void:
 
 
 func _update_zones(delta: float) -> void:
-	var i := zones.size() - 1
-	while i >= 0:
-		var z: Zone = zones[i]
-		i -= 1
+	# kopie pole: smrt bosse během zásahu může zóny smazat
+	for z: Zone in zones.duplicate():
+		if not zones.has(z):
+			continue
 		z.life -= delta
 		var a := clampf(z.life / 0.4, 0.0, 1.0) * clampf((z.max_life - z.life) / 0.2, 0.0, 1.0)
 		z.spr.modulate.a = a * (0.85 if z.hostile else 0.75)

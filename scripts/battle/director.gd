@@ -22,7 +22,7 @@ func init(battle: Battle) -> void:
 
 
 func rate(f: float) -> float:
-	return (2.2 + 5.5 * f + 5.0 * f * f) * (1.0 + 0.09 * b.tier)
+	return (2.2 + 5.5 * f + 5.0 * f * f) * (1.0 + 0.06 * b.tier)
 
 
 func update(delta: float) -> void:

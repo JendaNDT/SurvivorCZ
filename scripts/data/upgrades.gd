@@ -13,9 +13,9 @@ const TAG_NAMES := {"fyz": "fyzické", "projektil": "projektil", "plocha": "ploc
 const TAG_COLORS := {"fyz": "c9ced6", "projektil": "e0b070", "plocha": "8fd65a", "ohen": "ff6a2a", "led": "6fd0ff", "blesk": "ffe14a", "jed": "9be05a"}
 
 const STAT_TEXT := {
-	"dmg": "+%s poškození", "cd": "%s s prodleva", "area": "+%s %% plocha", "amount": "+%s kus",
-	"pierce": "+%s průraz", "chain": "+%s přeskok", "dur": "+%s s trvání", "slow": "+%s %% zpomalení",
-	"burn": "+%s hoření", "speed": "+%s rychlost", "knock": "+%s odhoz",
+	"dmg": "+%s poškození", "cd": "prodleva %s s", "area": "+%s %% plocha", "amount": "+%s kus",
+	"pierce": "+%s průraz", "chain": "+%s přeskok", "dur": "trvání +%s s", "slow": "+%s %% zpomalení",
+	"burn": "+%s poškození hořením", "speed": "+%s rychlost otáčení", "knock": "+%s odhoz",
 }
 
 const WEAPONS := {
@@ -94,7 +94,7 @@ const META := {
 	"m_reroll": {"name": "Přehození", "desc": "+1 přehození karet za kraj", "per": 1.0, "max": 3, "cost": 100, "icon": "reroll"},
 	"m_gold": {"name": "Lakota", "desc": "+15 % zlata", "per": 0.15, "max": 3, "cost": 90, "icon": "coin"},
 	"m_xp": {"name": "Moudrost", "desc": "+8 % zkušeností", "per": 0.08, "max": 3, "cost": 90, "icon": "sova"},
-	"m_revive": {"name": "Druhá šance", "desc": "Jednou za kraj vstaneš z mrtvých", "per": 1.0, "max": 1, "cost": 400, "icon": "srdce_zlate"},
+	"m_revive": {"name": "Druhá šance", "desc": "Jednou za kraj vstaneš z mrtvých", "per": 1.0, "max": 1, "cost": 300, "icon": "srdce_zlate"},
 }
 
 

@@ -211,10 +211,24 @@ func _dev_tests() -> void:
 			open_chest()
 		else:
 			add_xp(xp_need)
+	elif "--test-evo=A" in args or "--test-evo=B" in args:
+		var set_a := "--test-evo=A" in args
+		var ids: Array = ["mec", "sekera", "kuse", "ohen", "blesk"] if set_a else ["aura", "stity", "jed"]
+		weapons.weapons.clear()
+		for id in ids:
+			weapons.add_weapon(id)
+			for k in 7:
+				weapons.level_weapon(id)
+			weapons.add_passive(Upgrades.WEAPONS[id].evo_with, 0)
+			weapons.evolve(Upgrades.WEAPONS[id].evo)
+		print("evoluce: ", weapons.weapons.map(func(w): return w.id))
 	elif "--test-win" in args:
 		await get_tree().create_timer(1.0, false).timeout
 		boss_time = 42.0
 		win()
+		if "--then-map" in args:
+			await get_tree().create_timer(1.5, true).timeout
+			leave("map")
 	elif "--test-lose" in args:
 		await get_tree().create_timer(1.0, false).timeout
 		lose()
@@ -344,7 +358,7 @@ func recalc_stats() -> void:
 	var w := weapons
 	var pv := func(stat: String) -> float: return w.passive_value(stat) if w else 0.0
 	stats = {
-		"max_hp": (100.0 + pv.call("hp_flat")) * (1.0 + Game.meta_value("m_hp")),
+		"max_hp": (120.0 + pv.call("hp_flat")) * (1.0 + Game.meta_value("m_hp")),
 		"regen": pv.call("regen") + Game.meta_value("m_regen"),
 		"armor": pv.call("armor") + Game.meta_value("m_armor"),
 		"speed": 210.0 * (1.0 + pv.call("speed_inc")) * (1.0 + Game.meta_value("m_speed")),
@@ -371,16 +385,16 @@ func recalc_stats() -> void:
 ## s časem a s počtem dobytých krajů roste.
 func enemy_hp_mult() -> float:
 	var f := clampf(elapsed / duration, 0.0, 1.0)
-	return (1.0 + tier * 0.1) * (1.0 + f * (1.7 + tier * 0.28))
+	return (1.0 + tier * 0.08) * (1.0 + f * (1.6 + tier * 0.18))
 
 
 func enemy_dmg_mult() -> float:
 	var f := clampf(elapsed / duration, 0.0, 1.0)
-	return (1.0 + tier * 0.07) * (1.0 + f * (0.35 + tier * 0.03))
+	return (1.0 + tier * 0.04) * (1.0 + f * (0.3 + tier * 0.015))
 
 
 func boss_dmg_mult() -> float:
-	return 1.0 + tier * 0.12
+	return 1.0 + tier * 0.07
 
 
 func enemy_speed_mult() -> float:
@@ -576,6 +590,8 @@ func _open_choice() -> void:
 
 func choose(card: Dictionary) -> void:
 	apply_card(card)
+	fx.burst(player.position, Color("ffd23f"), 14, 260.0, 6.0)
+	fx.explosion(player.position, 70.0, Color(1, 0.9, 0.4))
 	if pending_levelups > 0 or pending_chests > 0:
 		state = resume_state
 		_open_choice()
@@ -737,7 +753,7 @@ func start_boss() -> void:
 	boss = Boss.new()
 	entity_layer.add_child(boss)
 	boss.position = arena_center + Vector2(0, -200)
-	boss.init_boss(self, region.boss, (900.0 + 110.0 * level) * (1.0 + tier * 0.45))
+	boss.init_boss(self, region.boss, (600.0 + 70.0 * level) * (1.0 + tier * 0.22))
 	boss_start = time_total
 	state = State.BOSS
 
@@ -807,6 +823,8 @@ func win() -> void:
 	overlay.show_win(stars, total, first)
 	if autoplay:
 		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d" % [stars, total, time_total, boss_time, level, kills])
+		if "--quit-at-end" in OS.get_cmdline_user_args():
+			get_tree().quit()
 
 
 func lose() -> void:
@@ -825,6 +843,8 @@ func lose() -> void:
 	overlay.show_lose(total)
 	if autoplay:
 		print("PROHRA: čas=%.0f lvl=%d zabito=%d boss=%s" % [time_total, level, kills, ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-"])
+		if "--quit-at-end" in OS.get_cmdline_user_args():
+			get_tree().quit()
 
 
 func pause_game() -> void:

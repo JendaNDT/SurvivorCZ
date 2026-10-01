@@ -4,6 +4,8 @@ Survivor strategie pro Android postavená v **Godotu 4.5**. Hrdina si postupně 
 
 Vzhled se inspiruje kresleným stylem Clash of Clans: syté barvy, silné tmavé obrysy, stínování „do 3D“, lesklá zaoblená tlačítka, dřevěné panely s pergamenem a výrazné písmo s obrysem. **Veškerá grafika vzniká v kódu.** Hra neobsahuje jediný obrázek ani grafiku převzatou odjinud.
 
+Hra vychází z obecného návrhu v [`docs/survivor-hra-design.md`](docs/survivor-hra-design.md). Převzala z něj úskok, ultimátku, štítky zbraní a předmětů, vzácnosti karet, přehazování a přeskakování karet, evoluce, elity s truhlou, režiséra vln a bosse se třemi fázemi a ohlášenými útoky. Délku runu zkrátila na jeden kraj (3–5 minut) a místo PixiJS používá Godot.
+
 ## Instalace na telefon
 
 1. Stáhni soubor `DobyjCesko.apk` (sestavené APK se nekomituje do repozitáře, viz [Sestavení APK](#sestavení-apk)).
@@ -15,7 +17,7 @@ APK je podepsané „sideload“ klíčem z `android/sideload.keystore`, takže 
 ## Jak se hraje
 
 - Na začátku je otevřený jen **Karlovarský kraj**. Každý dobytý kraj odemkne všechny sousední kraje.
-- **Pohyb:** polož prst kamkoli do levé části obrazovky a objeví se joystick. Hrdina útočí sám.
+- **Pohyb:** polož prst kamkoli na obrazovku (mimo tlačítka) a objeví se joystick. Hrdina útočí sám, meč míří na nejbližšího nepřítele.
 - **Úskok** (modré tlačítko vpravo dole): krátký rychlý skok, při kterém hrdinu nic nezraní. Nabíjí se 2,2 s.
 - **Hrom** (žluté tlačítko): ultimátka, nabíjí se zabíjením. Zasáhne blesky všechny nepřátele na obrazovce.
 - **Elixír** (růžové kapky) dává zkušenosti. Na každé nové úrovni vybíráš 1 ze 3 karet: novou zbraň, vyšší úroveň zbraně, nebo pasivní předmět. Karty můžeš **přehodit** (2× za kraj, víc se dá koupit) nebo **přeskočit** za trochu zlata a života.
@@ -120,6 +122,7 @@ godot --path . -- --battle=JHM --tier=5        # rovnou bitva o Jihomoravský kr
 godot --path . -- --battle=KVK --autoplay      # hraje počítač, do konzole vypisuje průběh
 godot --path . -- --skip-intro --conquer=KVK,PLK --gold=500   # mapa s dobytými kraji a zlatem
 godot --path . -- --battle=KVK --autoplay --shots=/tmp/s --shot-times=10,60   # snímky obrazovky
+godot --headless --path . --fixed-fps 30 -- --battle=MSK --autoplay --tier=13 --meta=2 --quit-at-end   # rychlá simulace bez grafiky
 godot --path . -- --battle=STC --test-levelup                # okno s kartami (také --test-chest, --test-win, --test-lose, --test-pause)
 godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony)
 ```

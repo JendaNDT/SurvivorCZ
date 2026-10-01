@@ -152,7 +152,11 @@ func _slash(w: Dictionary) -> void:
 	if w.id == "bruncvik":
 		n += 2
 	var radius := 135.0 * _area(st)
+	# meč míří sám na nejbližšího nepřítele (hráč často couvá před hordou)
 	var base_dir: Vector2 = b.player.face_dir
+	var target: Enemy = b.nearest_enemy(b.player.position, radius * 1.6)
+	if target:
+		base_dir = (target.position - b.player.position).normalized()
 	var gold: bool = w.id == "bruncvik"
 	for k in n:
 		var dir := base_dir.rotated(TAU * k / n)

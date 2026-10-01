@@ -4,12 +4,12 @@ class_name Player
 
 const DASH_TIME := 0.2
 const DASH_CD := 2.2
-const HURT_CD := 0.45
+const HURT_CD := 0.6
 
 var b: Battle
 var r := 18.0
-var hp := 100.0
-var max_hp := 100.0
+var hp := 120.0
+var max_hp := 120.0
 var move_dir := Vector2.ZERO
 var face_dir := Vector2.RIGHT
 var dash_t := 0.0

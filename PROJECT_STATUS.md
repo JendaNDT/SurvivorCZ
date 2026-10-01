@@ -7,7 +7,7 @@ Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle
 
 ## ⏭️ Příští krok
 **Zahrát si hru na telefonu a sepsat dojmy z obtížnosti.**
-Balanc je vyladěný jen automatickým hráčem (`--autoplay`). Čísla obtížnosti jsou v `scripts/battle/battle.gd` (`enemy_hp_mult`, `enemy_dmg_mult`, HP bosse ve `start_boss`) a v `scripts/battle/director.gd` (`rate`).
+Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20 s. Automat vyhrál kraje na obtížnosti 0, 1, 5, 9, 12 i 13 (s vylepšeními ze Zbrojnice), souboj s bossem trval 40–70 s a celý kraj 4–5 minut. Čísla obtížnosti jsou v `scripts/battle/battle.gd` (`enemy_hp_mult`, `enemy_dmg_mult`, `boss_dmg_mult`, HP bosse ve `start_boss`) a v `scripts/battle/director.gd` (`rate`).
 
 ## ✅ Hotovo
 - Mapa Česka se 14 kraji (skutečné hranice), odemykání sousedů, hvězdy, mlha nad zamčenými kraji, řeky, hory, hrady s vlajkou
@@ -19,7 +19,8 @@ Balanc je vyladěný jen automatickým hráčem (`--autoplay`). Čísla obtížn
 - Syntetizované zvuky a 3 hudební smyčky (generují se na pozadí)
 - Ukládání postupu (`user://save.json`), tlačítko Zpět na Androidu
 - Podepsané APK a workflow pro GitHub Actions, které APK sestaví automaticky
-- Vývojářská galerie kreseb a automatický hráč pro testy
+- Vývojářská galerie kreseb, automatický hráč a rychlá simulace balancu bez grafiky
+- Meč míří sám na nejbližšího nepřítele (při couvání před hordou jinak sekal do prázdna)
 
 ## 📝 TODO
 ### Backlog (později)
@@ -31,6 +32,8 @@ Balanc je vyladěný jen automatickým hráčem (`--autoplay`). Čísla obtížn
 
 ## 🐛 Známé bugy
 - Žádné potvrzené. Výkon na slabých telefonech zatím neověřený (cíl je ~230 nepřátel naráz).
+- Opraveno: generování hudby ve více vláknech najednou poškozovalo paměť (teď jedno vlákno).
+- Opraveno: smrt bosse uprostřed zásahu jedovou kaluží mohla způsobit chybu indexu.
 
 ## 🏗️ Klíčová rozhodnutí
 - **Godot místo PixiJS z design dokumentu:** zadání chtělo hru pro Android v Godotu.
