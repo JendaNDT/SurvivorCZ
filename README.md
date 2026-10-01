@@ -8,7 +8,7 @@ Hra vychází z obecného návrhu v [`docs/survivor-hra-design.md`](docs/survivo
 
 ## Instalace na telefon
 
-1. Stáhni soubor `DobyjCesko.apk` (sestavené APK se nekomituje do repozitáře, viz [Sestavení APK](#sestavení-apk)).
+1. Stáhni soubor `DobyjCesko-arm64.apk` (25 MB, pro 64bitové telefony, tedy prakticky všechny z posledních let), nebo univerzální `DobyjCesko.apk` (50 MB, i pro starší 32bitové telefony). Sestavené APK se nekomituje do repozitáře, viz [Sestavení APK](#sestavení-apk).
 2. Otevři ho v telefonu. Android se zeptá, jestli smí instalovat aplikace z tohoto zdroje. Povol to.
 3. Nainstaluj a spusť **Dobyj Česko!**. Hra běží na šířku.
 
@@ -110,7 +110,8 @@ export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$PWD/android/sideload.keystore
 export GODOT_ANDROID_KEYSTORE_RELEASE_USER=dobyjcesko
 export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=dobyjcesko
 godot --headless --path . --import
-godot --headless --path . --export-release "Android" build/DobyjCesko.apk
+godot --headless --path . --export-release "Android" build/DobyjCesko.apk              # univerzální
+godot --headless --path . --export-release "Android arm64" build/DobyjCesko-arm64.apk  # jen 64bit, poloviční velikost
 ```
 
 ## Testování
