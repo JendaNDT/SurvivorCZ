@@ -330,7 +330,10 @@ func _make_chunk(k: Vector2i) -> Array:
 		if rng.randf() < 0.5:
 			s.flip_h = true
 		s.scale *= rng.randf_range(0.85, 1.1)
-		entity_layer.add_child(s)
+		if id in PropArt.FLAT:
+			ground_fx_layer.add_child(s)
+		else:
+			entity_layer.add_child(s)
 		out.append(s)
 	return out
 
@@ -364,14 +367,16 @@ func recalc_stats() -> void:
 			player.hp += player.max_hp - old
 
 
+## Obtížnost: na začátku kraje mírná (hrdina začíná s jedním mečem),
+## s časem a s počtem dobytých krajů roste.
 func enemy_hp_mult() -> float:
 	var f := clampf(elapsed / duration, 0.0, 1.0)
-	return (1.0 + tier * 0.38) * (1.0 + f * 1.8)
+	return (1.0 + tier * 0.1) * (1.0 + f * (1.7 + tier * 0.28))
 
 
 func enemy_dmg_mult() -> float:
 	var f := clampf(elapsed / duration, 0.0, 1.0)
-	return (1.0 + tier * 0.13) * (1.0 + f * 0.4)
+	return (1.0 + tier * 0.07) * (1.0 + f * (0.35 + tier * 0.03))
 
 
 func boss_dmg_mult() -> float:
@@ -561,9 +566,10 @@ func _open_choice() -> void:
 	if autoplay:
 		await get_tree().create_timer(0.15, true).timeout
 		if state == State.LEVELUP:
+			var prio := {"evo": 5, "weapon_up": 4, "weapon_new": 3, "passive": 2}
 			var best: Dictionary = cards[0]
 			for c in cards:
-				if c.type == "evo" or (c.type == "weapon_new" and best.type != "evo"):
+				if prio.get(c.type, 0) > prio.get(best.type, 0):
 					best = c
 			choose(best)
 
@@ -596,7 +602,7 @@ func gen_cards(n: int, luck: int) -> Array:
 			continue
 		var def: Dictionary = Upgrades.WEAPONS[w.id]
 		if w.level < Upgrades.WEAPON_MAX_LEVEL:
-			pool.append([{"type": "weapon_up", "id": w.id, "level": w.level + 1}, 1.3])
+			pool.append([{"type": "weapon_up", "id": w.id, "level": w.level + 1}, 2.2])
 		elif weapons.passives.has(def.evo_with):
 			pool.append([{"type": "evo", "id": def.evo, "from": w.id}, 9.0])
 	if new_weapon_ok:
@@ -614,7 +620,7 @@ func gen_cards(n: int, luck: int) -> Array:
 			continue
 		if lv == 0 and not new_passive_ok:
 			continue
-		var wgt := 1.0
+		var wgt := 1.0 if lv > 0 else 0.75
 		for t in p.tags:
 			wgt *= 1.6 if t in owned_tags else 0.35
 		for w in weapons.weapons:

@@ -19,6 +19,7 @@ var selected := ""
 var map_scale := 1.0
 var time_s := 0.0
 var outline_all := PackedVector2Array()
+var fresh: Array = []
 var shapes := {}
 
 const MAP_SIZE := Vector2(1000, 574)
@@ -67,6 +68,14 @@ func _ready() -> void:
 	await _bake()
 	_layout()
 	Sfx.start_music("map")
+	fresh = Game.fresh_unlocks.duplicate()
+	Game.fresh_unlocks.clear()
+	if not fresh.is_empty():
+		Sfx.play("chest")
+		var names := []
+		for id in fresh:
+			names.append(Regions.DATA[id].short)
+		_toast("Odemčeno: " + ", ".join(names))
 	if not Game.data.get("intro_seen", false):
 		show_intro()
 	elif open_on_start == "shop":
@@ -323,3 +332,12 @@ func show_intro() -> void:
 		Game.save_game()
 		close_popup())
 	intro.add_child(play)
+
+
+## Krátké oznámení dole na mapě.
+func _toast(text: String) -> void:
+	var p := MapUI.Toast.new()
+	p.text = text
+	p.size = Vector2(size.x, 70)
+	p.position = Vector2(0, size.y - 90)
+	add_child(p)

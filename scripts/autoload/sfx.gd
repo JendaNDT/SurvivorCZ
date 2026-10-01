@@ -10,6 +10,9 @@ var next_player := 0
 var music_player: AudioStreamPlayer
 var want_music := ""
 var generating := {}
+var music_queue: Array = []
+var music_thread: Thread
+var music_mutex := Mutex.new()
 
 
 func _ready() -> void:
@@ -54,14 +57,45 @@ func start_music(kind: String) -> void:
 	_prepare_music(kind)
 
 
-## Hudba se generuje na pozadí, aby hra při načítání nezamrzla.
+## Hudba se generuje postupně v jednom vlákně na pozadí, aby hra nezamrzla.
 func _prepare_music(kind: String) -> void:
 	if generating.has(kind) or streams.has("music_" + kind):
 		return
 	generating[kind] = true
-	WorkerThreadPool.add_task(func():
+	music_mutex.lock()
+	music_queue.append(kind)
+	music_mutex.unlock()
+	if music_thread == null:
+		music_thread = Thread.new()
+		music_thread.start(_music_worker)
+
+
+func _music_worker() -> void:
+	while true:
+		music_mutex.lock()
+		var kind: String = music_queue.pop_front() if not music_queue.is_empty() else ""
+		music_mutex.unlock()
+		if kind == "":
+			break
 		var w := _music(kind)
-		_music_ready.call_deferred(kind, w))
+		_music_ready.call_deferred(kind, w)
+	_music_done.call_deferred()
+
+
+func _music_done() -> void:
+	if music_thread:
+		music_thread.wait_to_finish()
+		music_thread = null
+	if not music_queue.is_empty():
+		music_thread = Thread.new()
+		music_thread.start(_music_worker)
+
+
+func _exit_tree() -> void:
+	music_queue.clear()
+	if music_thread:
+		music_thread.wait_to_finish()
+		music_thread = null
 
 
 func _music_ready(kind: String, w: AudioStreamWAV) -> void:

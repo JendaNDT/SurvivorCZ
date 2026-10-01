@@ -34,7 +34,7 @@ float noise(vec2 p) {
 float fbm(vec2 p) {
 	float v = 0.0;
 	float a = 0.5;
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 3; i++) {
 		v += a * noise(p);
 		p *= 2.03;
 		a *= 0.5;
@@ -58,8 +58,8 @@ vec3 voronoi(vec2 p) {
 		if (d < md) { md = d; mr = r; mg = g; }
 	}
 	float ed = 8.0;
-	for (int j = -2; j <= 2; j++)
-	for (int i = -2; i <= 2; i++) {
+	for (int j = -1; j <= 1; j++)
+	for (int i = -1; i <= 1; i++) {
 		vec2 g = mg + vec2(float(i), float(j));
 		vec2 o = hash2(n + g) * 0.8 + 0.1;
 		vec2 r = g + o - f;

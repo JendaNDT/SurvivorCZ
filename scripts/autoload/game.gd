@@ -9,7 +9,8 @@ signal changed
 var data: Dictionary = {}
 ## Parametry, které si předává mapa a bitva.
 var pending_region: String = ""
-var last_result: Dictionary = {}
+## Kraje, které se právě odemkly (mapa je zvýrazní).
+var fresh_unlocks: Array = []
 
 
 func _ready() -> void:
@@ -89,7 +90,15 @@ func tier_for(id: String) -> int:
 
 func conquer(id: String, star_count: int) -> bool:
 	var first := not is_conquered(id)
+	var before := []
+	for r in Regions.ORDER:
+		if is_available(r):
+			before.append(r)
 	data.conquered[id] = maxi(stars(id), star_count)
+	fresh_unlocks.clear()
+	for r in Regions.ORDER:
+		if is_available(r) and not r in before:
+			fresh_unlocks.append(r)
 	if conquered_count() >= Regions.ORDER.size():
 		data.finished = true
 	save_game()

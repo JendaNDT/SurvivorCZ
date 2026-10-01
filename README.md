@@ -120,5 +120,6 @@ godot --path . -- --battle=JHM --tier=5        # rovnou bitva o Jihomoravský kr
 godot --path . -- --battle=KVK --autoplay      # hraje počítač, do konzole vypisuje průběh
 godot --path . -- --skip-intro --conquer=KVK,PLK --gold=500   # mapa s dobytými kraji a zlatem
 godot --path . -- --battle=KVK --autoplay --shots=/tmp/s --shot-times=10,60   # snímky obrazovky
+godot --path . -- --battle=STC --test-levelup                # okno s kartami (také --test-chest, --test-win, --test-lose, --test-pause)
 godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony)
 ```

@@ -3,6 +3,8 @@ class_name PropArt
 ## Dekorace prostředí. Bod (0,0) je místo, kde předmět stojí na zemi.
 
 const DEFAULT_SIZE := Vector2(150, 150)
+## Ploché dekorace leží na zemi pod postavami (nejsou řazené podle hloubky).
+const FLAT := ["zahon", "leknin", "lodka", "pramen"]
 const BIG := ["kolonada", "vez", "komin", "bouda", "chaloupka", "roubenka", "sklep", "trdelnik", "piskovec", "pramen", "kasna", "lodka", "leknin"]
 const TALL := ["smrk", "snezny_smrk", "vez", "komin", "piskovec", "kolonada", "lampa", "lampa_praha", "dub", "vrba", "strom", "svestka_strom", "suchy_strom"]
 

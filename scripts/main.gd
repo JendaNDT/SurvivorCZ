@@ -99,7 +99,14 @@ func _show_loading() -> void:
 
 ## Tlačítko Zpět na Androidu: v bitvě pauza, na mapě zavře okno, jinak ukončí hru.
 func _notification(what: int) -> void:
-	if what != NOTIFICATION_WM_GO_BACK_REQUEST or current == null:
+	if current == null:
+		return
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		# telefon přešel do pozadí: bitvu pozastav
+		if current is Battle and shots_prefix == "" and not (current as Battle).autoplay:
+			(current as Battle).pause_game()
+		return
+	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
 	if current is Battle:
 		var b := current as Battle

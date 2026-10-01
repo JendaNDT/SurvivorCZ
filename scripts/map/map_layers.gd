@@ -187,6 +187,12 @@ class MapLive extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		if t < 4.0:
+			for id in m.fresh:
+				var lp := Regions.label_pos(id)
+				for k in 3:
+					var kk := fmod(t * 0.8 + k / 3.0, 1.0)
+					draw_arc(lp, 20.0 + kk * 70.0, 0, TAU, 40, Color(1, 0.85, 0.2, (1.0 - kk) * (1.0 - t / 4.0)), 4.0, true)
 		if m.selected != "":
 			var pts: PackedVector2Array = m.shapes[m.selected]
 			var cl := pts.duplicate()

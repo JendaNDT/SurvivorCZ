@@ -99,7 +99,7 @@ const DATA := {
 		"neighbors": ["STC"],
 		"theme": "Stověžatá matka měst",
 		"desc": "Dlažba Starého Města, holubi, turisté a Golem. O půlnoci ožívá Orloj.",
-		"ground": {"pattern": Ground.COBBLE, "a": "a9a39a", "b": "7f7a72", "c": "56524c"},
+		"ground": {"pattern": Ground.COBBLE, "a": "c4b8a2", "b": "9a8e7c", "c": "5e554a"},
 		"decor": ["lampa_praha", "lavicka", "trdelnik", "kasna"],
 		"enemies": ["turista", "holub", "golem"],
 		"boss": "orloj",

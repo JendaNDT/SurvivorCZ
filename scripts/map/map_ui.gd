@@ -246,3 +246,24 @@ class IntroBoard extends Control:
 			Art.circle(self, Vector2(262, y - 7), 12, Color("6fcf2f"), 2.0)
 			Art.text(self, Vector2(262, y), str(i + 1), 15, Color.WHITE, 4)
 			draw_string(Art.font, Vector2(284, y), lines[i], HORIZONTAL_ALIGNMENT_LEFT, size.x - 300, 18, ink)
+
+
+## Stuha s oznámením, která po chvíli zmizí.
+class Toast extends Control:
+	var text := ""
+	var t := 0.0
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _process(delta: float) -> void:
+		t += delta
+		if t > 4.0:
+			queue_free()
+		queue_redraw()
+
+	func _draw() -> void:
+		var a := clampf(t / 0.3, 0.0, 1.0) * clampf((4.0 - t) / 0.5, 0.0, 1.0)
+		modulate.a = a
+		var w := Art.text_width(text, 28) + 90.0
+		Art.ribbon(self, Vector2(size.x * 0.5, 34), w, 58, Color("ffb030"), text, 28)
