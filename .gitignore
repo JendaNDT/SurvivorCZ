@@ -1,0 +1,14 @@
+# Godot
+.godot/
+*.translation
+export_credentials.cfg
+
+# Sestavené soubory
+build/
+*.apk
+*.aab
+*.idsig
+
+# Systém
+.DS_Store
+Thumbs.db

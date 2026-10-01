@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Ikona aplikace: štít s mečem a korunou, nakreslená ručně v SVG -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#7fd4ff"/>
+      <stop offset="1" stop-color="#1f6fc0"/>
+    </radialGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6b5b"/>
+      <stop offset="1" stop-color="#b8261c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe680"/>
+      <stop offset="1" stop-color="#e09a12"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#9fb3c4"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#2a1a0c"/>
+  <rect x="16" y="16" width="224" height="224" rx="46" fill="url(#bg)"/>
+  <ellipse cx="128" cy="232" rx="100" ry="40" fill="#5cb82e"/>
+  <path d="M128 40 L200 64 L196 140 Q190 196 128 222 Q66 196 60 140 L56 64 Z" fill="#2a1a0c" stroke="#2a1a0c" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M128 40 L200 64 L196 140 Q190 196 128 222 Q66 196 60 140 L56 64 Z" fill="url(#shield)"/>
+  <path d="M128 40 L200 64 L198 120 L58 120 L56 64 Z" fill="#ffffff"/>
+  <path d="M128 40 L200 64 L198 120 L128 120 Z" fill="#e3e9ef"/>
+  <path d="M60 140 L128 120 L128 222 Q66 196 60 140 Z" fill="#2f6ad1"/>
+  <rect x="120" y="58" width="16" height="120" rx="6" fill="#2a1a0c"/>
+  <rect x="123" y="62" width="10" height="112" rx="4" fill="url(#blade)"/>
+  <rect x="96" y="172" width="64" height="16" rx="8" fill="#2a1a0c"/>
+  <rect x="100" y="175" width="56" height="10" rx="5" fill="url(#gold)"/>
+  <rect x="121" y="186" width="14" height="28" rx="5" fill="#7a4a1d" stroke="#2a1a0c" stroke-width="4"/>
+  <path d="M88 52 L100 22 L114 44 L128 16 L142 44 L156 22 L168 52 Z" fill="url(#gold)" stroke="#2a1a0c" stroke-width="6" stroke-linejoin="round"/>
+  <ellipse cx="96" cy="78" rx="18" ry="8" fill="#ffffff" opacity="0.55" transform="rotate(-25 96 78)"/>
+</svg>

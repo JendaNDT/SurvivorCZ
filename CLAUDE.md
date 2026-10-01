@@ -1,0 +1,39 @@
+# Pravidla projektu Dobyj Česko! (pro Claude Code)
+
+Godot 4.5, GDScript, renderer **GL Compatibility**, cílová platforma Android (na šířku, 1280×720, stretch `canvas_items` + `expand`).
+
+## Zásady
+
+- **Žádné obrázky ani převzatá grafika.** Vše se kreslí v kódu přes `Art` (scripts/autoload/art.gd) a peče do textur přes `Baker`. Nové kresby přidávej jako statické funkce `_<id>(ci, t)` do příslušného souboru ve `scripts/art/` (dispatch jde přes `Callable(Třída, "_" + id)`).
+- Kreslený styl: obrys `Art.outline`/`Art.shape` (3 jednotky), gradient světlejší nahoře, stín dole, odlesk vlevo nahoře, syté barvy, oči přes `Art.eyes`.
+- **Obsah patří do `scripts/data/`** (kraje, nepřátelé, bossové, zbraně, vylepšení). Logika ve `scripts/battle/` z dat jen čte.
+- UI se staví z kódu (Controls + vlastní `_draw`). Tlačítka = `CCButton.make(...)`, desky = `Art.panel`, nadpisy = `Art.ribbon`, text s obrysem = `Art.text`.
+- Texty ve hře jsou česky, s diakritikou.
+
+## Úskalí GDScriptu (už nás pálila)
+
+- Typované cykly: `for s: int in [-1, 1]:`, jinak `var x := s * 2.0` neprojde („Cannot infer the type“).
+- Hodnota ze slovníku (`stats.crit`, `w.st.dmg`) je Variant → piš `var x: float = ...`, ne `:=`.
+- Používej `absf/minf/maxf/clampf`, ne `abs/min/max/clamp`.
+- Nová `class_name` se zaregistruje až po `godot --headless --path . --import`.
+- Nepřátelé se mažou přes `queue_free`; v mřížce (`EnemyManager.grid`) kontroluj `is_instance_valid`.
+- Víceřádkové lambdy fungují, ale u `match` uvnitř lambdy raději použij metodu.
+
+## Architektura bitvy
+
+`Battle` (scripts/battle/battle.gd) vlastní vrstvy světa a systémy. Pořadí v `_process`: vstup → hráč → nepřátelé (+ boss) → zbraně → střely → sběr → režisér. Pauza (výběr karet, pauza) = `get_tree().paused`; overlaye mají `PROCESS_MODE_ALWAYS`. Útoky bosse jsou korutiny s `create_timer(t, false)` (respektují pauzu).
+
+## Testování
+
+```bash
+G=godot   # binárka Godot 4.5
+$G --headless --path . --import                      # kontrola chyb ve skriptech
+xvfb-run -a $G --path . --rendering-driver opengl3 res://scenes/main.tscn -- --battle=KVK --autoplay --shots=/tmp/s --shot-times=10,60
+xvfb-run -a $G --path . --rendering-driver opengl3 res://scenes/dev/gallery.tscn -- --page=1 --zoom=1.4 --shot=/tmp/g.png
+```
+
+Autoplay vypisuje každých 10 s úroveň, životy, zabití a zbraně – slouží k ladění balancu.
+
+## Na konci každé session
+
+Aktualizuj `PROJECT_STATUS.md` (co je hotové, příští krok, známé bugy).
