@@ -11,6 +11,7 @@ class_name Main
 ##   --screen=map|shop|settings|perf|ending   rovnou otevře danou obrazovku
 ##   --quality=low, --show-fps, --left-handed   nastavení jen pro toto spuštění
 ##   --bench           v bitvě drží plný počet nepřátel a vypíše průměrné FPS
+##   --dev-script=res://x.gd   přidá uzel s vývojářským skriptem (např. sonda zvuku)
 ##   --soak=N          zátěžový test: N bitev za sebou (mapa → bitva → mapa), po každé vypíše paměť
 ##   --taps=640,300@3;100,200>400,200@4   ťuknutí (x,y@čas) a tažení (a>b@čas) pro test ovládání
 
@@ -65,6 +66,11 @@ func _ready() -> void:
 		elif a.begins_with("--shot-times="):
 			for t in a.substr(13).split(","):
 				shot_times.append(float(t))
+		elif a.begins_with("--dev-script="):
+			var probe := Node.new()
+			probe.set_script(load(a.substr(13)))
+			probe.process_mode = Node.PROCESS_MODE_ALWAYS
+			add_child(probe)
 		elif a.begins_with("--soak="):
 			soak = int(a.substr(7))
 		elif a.begins_with("--taps="):

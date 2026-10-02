@@ -4,19 +4,28 @@ extends Node
 const RATE := 22050
 
 var streams := {}
-## Každý zvuk má vlastní přehrávač (víc hlasů přes max_polyphony), hudba má
-## přehrávač pro každou skladbu. Přehrávačům se nikdy nemění skladba, když hrají:
-## na telefonu běží míchání zvuku ve vlastním vlákně a výměna by mohla hru shodit.
+## Každý krátký zvuk má vlastní přehrávač (víc hlasů přes max_polyphony) a hrajícím
+## přehrávačům se nikdy nemění skladba (na telefonu míchá zvuk vlastní vlákno).
 var players := {}
-var music_players := {}
 var last_play := {}
 var want_music := ""
 var generating := {}
 var music_queue: Array = []
 var music_busy := false
 
+## Hudba nehraje přes AudioStreamWAV: přehrávání dlouhé smyčkové WAV hudby v Godotu 4.5
+## na telefonu četlo za koncem dat a hra padala (náhrobek: AudioStreamPlaybackWAV,
+## vlákno AudioTrack, SIGSEGV na hranici stránky). Hudbu proto posílá do generátoru
+## sama hra: každý snímek přisype další kus smyčky z vlastního pole a hlídá jeho hranice.
+var music_tracks := {}
+var music_player: AudioStreamPlayer
+var music_gen: AudioStreamGeneratorPlayback
+var music_kind := ""
+var music_pos := 0
+
 ## Zvyš, když se změní skladby: hudba uložená v telefonu se pak složí znovu.
-const MUSIC_VERSION := 1
+const MUSIC_VERSION := 2
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -24,6 +33,15 @@ func _ready() -> void:
 	_make_bus("Music")
 	_make_bus("SFX")
 	apply_volumes()
+	music_player = AudioStreamPlayer.new()
+	var gen := AudioStreamGenerator.new()
+	gen.mix_rate = RATE
+	gen.buffer_length = 1.0
+	music_player.stream = gen
+	music_player.bus = "Music"
+	music_player.volume_db = -12.0
+	add_child(music_player)
+	_remove_old_music_cache()
 	Game.setting_changed.connect(_on_setting)
 	_build()
 	for k in ["map", "battle", "boss"]:
@@ -92,18 +110,16 @@ func start_music(kind: String) -> void:
 	if music_vol() <= 0.001:
 		_stop_all_music()
 		return
-	var key := "music_" + kind
-	if streams.has(key):
-		_play_music(key)
+	if music_tracks.has(kind):
+		_play_music(kind)
 		return
 	_prepare_music(kind)
 
 
 ## Hudba se skládá v hlavním vlákně po kouscích (jedna doba za snímek), aby hra
-## nezamrzla. Vlákna na pozadí dřív na telefonu poškozovala paměť, proto žádná nejsou.
-## Hotová smyčka se uloží do user:// a při dalším spuštění se jen načte.
+## nezamrzla. Žádná vlákna na pozadí. Hotová smyčka se uloží do user://.
 func _prepare_music(kind: String) -> void:
-	if generating.has(kind) or streams.has("music_" + kind):
+	if generating.has(kind) or music_tracks.has(kind):
 		return
 	generating[kind] = true
 	music_queue.append(kind)
@@ -115,72 +131,100 @@ func _music_loop() -> void:
 	music_busy = true
 	while not music_queue.is_empty():
 		var kind: String = music_queue.pop_front()
-		var w := _load_music(kind)
-		if w == null:
-			w = await _music(kind)
-			_save_music(kind, w)
-		_music_ready(kind, w)
+		var frames := _load_music(kind)
+		if frames.is_empty():
+			var samples: PackedFloat32Array = await _music(kind)
+			frames = await _to_frames(samples)
+			_save_music(kind, frames)
+		_music_ready(kind, frames)
 	music_busy = false
 
 
 func _music_path(kind: String) -> String:
-	return "user://music_%s_v%d.pcm" % [kind, MUSIC_VERSION]
+	return "user://music_%s_v%d.bin" % [kind, MUSIC_VERSION]
 
 
-func _load_music(kind: String) -> AudioStreamWAV:
+func _load_music(kind: String) -> PackedVector2Array:
 	var path := _music_path(kind)
 	if not FileAccess.file_exists(path):
-		return null
-	var bytes := FileAccess.get_file_as_bytes(path)
-	if bytes.size() < RATE:
-		return null
-	return _wav_from_bytes(bytes, true)
+		return PackedVector2Array()
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return PackedVector2Array()
+	var v = f.get_var()
+	if v is PackedVector2Array and (v as PackedVector2Array).size() > RATE:
+		return v
+	return PackedVector2Array()
 
 
 ## Zápis přes dočasný soubor, aby po nečekaném ukončení nezůstala useknutá hudba.
-func _save_music(kind: String, w: AudioStreamWAV) -> void:
+func _save_music(kind: String, frames: PackedVector2Array) -> void:
 	var path := _music_path(kind)
 	var f := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if f == null:
 		return
-	f.store_buffer(w.data)
+	f.store_var(frames)
 	f.close()
 	DirAccess.rename_absolute(path + ".tmp", path)
 
 
-func _music_ready(kind: String, w: AudioStreamWAV) -> void:
-	streams["music_" + kind] = w
+## Starší verze ukládaly hudbu jako syrová 16bitová data, ta už nejsou potřeba.
+func _remove_old_music_cache() -> void:
+	for kind in ["map", "battle", "boss"]:
+		var old := "user://music_%s_v1.pcm" % kind
+		if FileAccess.file_exists(old):
+			DirAccess.remove_absolute(old)
+
+
+func _music_ready(kind: String, frames: PackedVector2Array) -> void:
+	music_tracks[kind] = frames
 	generating.erase(kind)
 	if want_music == kind and music_vol() > 0.001:
-		_play_music("music_" + kind)
+		_play_music(kind)
 
 
-func _play_music(key: String) -> void:
-	var p: AudioStreamPlayer = music_players.get(key)
-	if p == null:
-		p = AudioStreamPlayer.new()
-		p.bus = "Music"
-		p.volume_db = -12.0
-		p.stream = streams[key]
-		add_child(p)
-		music_players[key] = p
-	for k in music_players.keys():
-		if k != key and music_players[k].playing:
-			music_players[k].stop()
-	if not p.playing:
-		p.play()
+func _play_music(kind: String) -> void:
+	if music_kind == kind and music_player.playing:
+		return
+	music_player.stop()
+	music_kind = kind
+	music_pos = 0
+	music_player.play()
+	music_gen = music_player.get_stream_playback()
+	_feed_music()
+
+
+## Doplní generátor hudby tím, co mu chybí (volá se každý snímek, i v pauze).
+func _feed_music() -> void:
+	if music_gen == null or not music_player.playing or not music_tracks.has(music_kind):
+		return
+	var track: PackedVector2Array = music_tracks[music_kind]
+	var size := track.size()
+	if size == 0:
+		return
+	var n := music_gen.get_frames_available()
+	var guard := 0
+	while n > 0 and guard < 8:
+		guard += 1
+		music_pos = clampi(music_pos, 0, size - 1)
+		var chunk := mini(n, size - music_pos)
+		music_gen.push_buffer(track.slice(music_pos, music_pos + chunk))
+		music_pos = (music_pos + chunk) % size
+		n -= chunk
+
+
+func _process(_delta: float) -> void:
+	_feed_music()
 
 
 func _music_playing() -> bool:
-	for p in music_players.values():
-		if p.playing:
-			return true
-	return false
+	return music_player.playing
 
 
 func _stop_all_music() -> void:
-	for p in music_players.values():
-		p.stop()
+	music_player.stop()
+	music_gen = null
+	music_kind = ""
 
 
 func stop_music() -> void:
@@ -190,39 +234,35 @@ func stop_music() -> void:
 
 # ---------------------------------------------------------------- syntéza
 
-func _wav(samples: PackedFloat32Array, loop: bool = false) -> AudioStreamWAV:
+## Krátký zvuk efektu. Na konec přidá kousek ticha, aby případné čtení těsně
+## za koncem dat (viz pád v hudbě) neskončilo mimo pole.
+func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var bytes := PackedByteArray()
-	bytes.resize(samples.size() * 2)
+	bytes.resize((samples.size() + 512) * 2)
+	bytes.fill(0)
 	for i in samples.size():
 		bytes.encode_s16(i * 2, int(clampf(samples[i], -1.0, 1.0) * 32000.0))
-	return _wav_from_bytes(bytes, loop)
-
-
-## Totéž jako _wav, ale převod rozloží do více snímků (dlouhé hudební smyčky).
-func _wav_async(samples: PackedFloat32Array, loop: bool) -> AudioStreamWAV:
-	var bytes := PackedByteArray()
-	bytes.resize(samples.size() * 2)
-	var i := 0
-	while i < samples.size():
-		var end := mini(i + 20000, samples.size())
-		for j in range(i, end):
-			bytes.encode_s16(j * 2, int(clampf(samples[j], -1.0, 1.0) * 32000.0))
-		i = end
-		await get_tree().process_frame
-	return _wav_from_bytes(bytes, loop)
-
-
-func _wav_from_bytes(bytes: PackedByteArray, loop: bool) -> AudioStreamWAV:
 	var w := AudioStreamWAV.new()
 	w.format = AudioStreamWAV.FORMAT_16_BITS
 	w.mix_rate = RATE
 	w.stereo = false
 	w.data = bytes
-	if loop:
-		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		w.loop_begin = 0
-		w.loop_end = bytes.size() / 2
 	return w
+
+
+## Mono vzorky hudby → stereo snímky pro generátor (po kouscích, aby hra nezamrzla).
+func _to_frames(s: PackedFloat32Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	out.resize(s.size())
+	var i := 0
+	while i < s.size():
+		var end := mini(i + 20000, s.size())
+		for j in range(i, end):
+			var v := clampf(s[j], -1.0, 1.0) * 0.977
+			out[j] = Vector2(v, v)
+		i = end
+		await get_tree().process_frame
+	return out
 
 
 func _osc(wave: String, ph: float) -> float:
@@ -412,7 +452,7 @@ func _swell(buf: PackedFloat32Array, start: float, dur: float, vol: float, lp: f
 
 ## Jednoduchá smyčka hudby: basa + bicí + melodie v pentatonice.
 ## Skládá se po dobách (po každé počká na další snímek).
-func _music(kind: String) -> AudioStreamWAV:
+func _music(kind: String) -> PackedFloat32Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = {"map": 77, "battle": 99, "boss": 13}.get(kind, 5)
 	var bpm: float = {"map": 96.0, "battle": 132.0, "boss": 150.0}.get(kind, 120.0)
@@ -450,4 +490,4 @@ func _music(kind: String) -> AudioStreamWAV:
 					_tone(b, t + beat * 0.5, beat * 0.45, f2, f2, "sq", 0.05, 0.005, 1.2)
 			await get_tree().process_frame
 	b.resize(int(total * RATE))
-	return await _wav_async(b, true)
+	return b
