@@ -4,6 +4,8 @@ class_name Enemy
 
 enum St { MOVE, WINDUP, DASH, FUSE, REST, FLEE }
 
+const SQUASH := 0.1
+
 var def: Dictionary
 var id: String
 var beh: String
@@ -35,6 +37,8 @@ var burn_dps := 0.0
 var poison_t := 0.0
 var poison_dps := 0.0
 var flash := 0.0
+## Krátké smáčknutí při zásahu (sekundy).
+var squash := 0.0
 var hit_cd := {}
 
 var body: Sprite2D
@@ -71,6 +75,9 @@ func animate(delta: float, moving: bool) -> void:
 	var frame := int(anim_t) % 2
 	body.texture = frames[frame]
 	var bob := sin(anim_t * PI) * 0.06
+	if squash > 0.0:
+		squash -= delta
+		bob += 0.22 * maxf(0.0, squash) / SQUASH
 	var sx := base_scale / Baker.SCALE
 	body.scale = Vector2(sx * (1.0 + bob) * face, sx * (1.0 - bob))
 	body.position.y = -absf(sin(anim_t * PI)) * 2.5

@@ -27,6 +27,8 @@ Obecný návrh survivor hry (mechaniky, stat systém, milníky) je v `docs/survi
 
 Náčelník (`MiniBoss`, scripts/battle/mini_boss.gd) dědí z `Boss` a sdílí jeho útoky. Má `is_boss` i `chief`, od dopadu žije v `EnemyManager.list` (zbraně ho najdou samy), ale pohyb si řídí sám přes `Battle._process`. Po smrti nebo útěku (`vanish`) se uzel uvolní až za 3 s, aby rozběhnuté korutiny útoků doběhly. Útoky nepřesouvej do statických funkcí: korutinu na instanci Godot po uvolnění uzlu neprobudí, statická by sáhla na smazaný objekt.
 
+Pocit z boje (M4): `Battle.hitstop(ms)` nastaví `Engine.time_scale = 0.05` a vrátí ho časovačem, který ignoruje měřítko a běží i v pauze. Pauza a výběr karet zastavení ruší (`_cancel_hitstop`), během zpomalení po smrti bosse (`Battle.slowmo`) se nespouští. Kontrola: `--test-bossdeath --dev-script=res://scripts/dev/hitstop_check.gd` (vypíše `HITSTOP OK`). Nástup bosse je `BossIntro` (scripts/ui/boss_intro.gd), smrt bosse uzel `BossDeath` (scripts/battle/boss_death.gd) s tečkou podle `BOSSES[id].death`. Prach pod nohama kreslí `GroundFx.puff()`, ten je ve světě nad stíny a pod postavami.
+
 ## Testování
 
 ```bash

@@ -20,6 +20,9 @@ class Pick:
 var b: Battle
 var picks: Array = []
 var xp_count := 0
+## Kolik elixíru hrdina sebral rychle za sebou (tón pak stoupá).
+var combo := 0
+var combo_t := 0.0
 
 
 func init(battle: Battle) -> void:
@@ -49,13 +52,14 @@ func drop_xp(pos: Vector2, value: int) -> void:
 	drop(_xp_kind(value), pos, value)
 
 
-func drop(kind: String, pos: Vector2, value: int = 1) -> void:
+## speed = jak daleko se předmět rozletí (mince ze smrti bosse víc).
+func drop(kind: String, pos: Vector2, value: int = 1, speed: float = 110.0) -> void:
 	var p := Pick.new()
 	p.kind = kind
 	p.pos = pos
 	p.value = value
 	var a := randf() * TAU
-	p.vel = Vector2(cos(a), sin(a)) * randf_range(30.0, 110.0)
+	p.vel = Vector2(cos(a), sin(a)) * randf_range(speed * 0.27, speed)
 	p.spr = Baker.sprite("fx:" + kind)
 	p.spr.position = pos
 	if kind == "chest":
@@ -87,6 +91,9 @@ func magnetize_all() -> void:
 
 
 func update(delta: float) -> void:
+	combo_t -= delta
+	if combo_t <= 0.0:
+		combo = 0
 	var pp: Vector2 = b.player.position
 	var mag: float = b.stats.magnet
 	var i := picks.size() - 1
@@ -119,7 +126,9 @@ func _collect(p: Pick) -> void:
 		"xp0", "xp1", "xp2":
 			xp_count -= 1
 			b.add_xp(p.value)
-			Sfx.play("pickup", -10.0, 0.15, 0.03)
+			combo = mini(combo + 1, 14)
+			combo_t = 0.45
+			Sfx.play("pickup", -10.0, 0.03, 0.03, 1.0 + combo * 0.045)
 		"coin":
 			b.add_gold(p.value)
 			Sfx.play("coin", -8.0)

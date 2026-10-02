@@ -85,7 +85,8 @@ func _on_setting(key: String) -> void:
 			start_music(want_music)
 
 
-func play(name: String, vol_db: float = 0.0, pitch_var: float = 0.08, min_gap: float = 0.035) -> void:
+## pitch = základní výška (sběr elixíru za sebou stoupá).
+func play(name: String, vol_db: float = 0.0, pitch_var: float = 0.08, min_gap: float = 0.035, pitch: float = 1.0) -> void:
 	if sfx_vol() <= 0.001 or not streams.has(name):
 		return
 	var now := Time.get_ticks_msec() / 1000.0
@@ -101,7 +102,7 @@ func play(name: String, vol_db: float = 0.0, pitch_var: float = 0.08, min_gap: f
 		add_child(p)
 		players[name] = p
 	p.volume_db = vol_db
-	p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
+	p.pitch_scale = pitch + randf_range(-pitch_var, pitch_var)
 	p.play()
 
 

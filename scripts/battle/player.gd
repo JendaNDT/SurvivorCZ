@@ -22,6 +22,7 @@ var flash := 0.0
 var knock := Vector2.ZERO
 var anim_t := 0.0
 var ghost_t := 0.0
+var dust_t := 0.0
 
 var body: Sprite2D
 var shadow: Sprite2D
@@ -84,6 +85,11 @@ func update(delta: float, input: Vector2) -> void:
 		hp = minf(max_hp, hp + b.stats.regen * delta)
 	# animace
 	var moving := vel.length() > 5.0
+	if moving and dash_t <= 0.0:
+		dust_t -= delta
+		if dust_t <= 0.0:
+			dust_t = 0.3 if b.low_quality else 0.18
+			b.dust_at(position + Vector2(0, 30) - move_dir.normalized() * 8.0)
 	anim_t += delta * (7.0 if moving else 2.0)
 	body.texture = frames[int(anim_t) % 2] if moving else frames[0]
 	var bob := sin(anim_t * PI) * (0.05 if moving else 0.025)

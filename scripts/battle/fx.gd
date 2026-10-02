@@ -62,6 +62,19 @@ func burst(pos: Vector2, col: Color, n: int = 6, speed: float = 160.0, size: flo
 		parts.append({"pos": pos, "vel": Vector2(cos(a), sin(a)) * randf_range(speed * 0.3, speed), "t": 0.0, "life": randf_range(0.3, 0.6), "col": col, "size": randf_range(size * 0.6, size * 1.3)})
 
 
+## Konfety ze smrti bosse: barevné papírky vyletí vzhůru a padají.
+func confetti(pos: Vector2, n: int) -> void:
+	if low:
+		n = ceili(n * 0.4)
+	var cols := [Color("ff4d6d"), Color("ffd23f"), Color("3fa8ff"), Color("6fcf2f"), Color("b25cff"), Color("ff8a2a")]
+	for i in n:
+		if parts.size() >= max_parts:
+			parts.pop_front()
+		var a := randf_range(-PI * 0.95, -PI * 0.05)
+		parts.append({"pos": pos, "vel": Vector2(cos(a), sin(a)) * randf_range(250.0, 620.0), "t": 0.0, "life": randf_range(1.3, 2.0),
+			"col": cols[randi() % cols.size()], "size": randf_range(5.0, 8.0), "conf": true, "rot": randf() * TAU, "spin": randf_range(-12.0, 12.0)})
+
+
 func poof(pos: Vector2, col: Color = Color(1, 1, 1, 0.9)) -> void:
 	var n := 3 if low else 7
 	for i in n:
@@ -99,7 +112,12 @@ func _process(delta: float) -> void:
 		var p: Dictionary = parts[i]
 		p.t += delta
 		p.pos += p.vel * delta
-		p.vel *= 0.9
+		if p.get("conf", false):
+			var v: Vector2 = p.vel
+			p.vel = Vector2(v.x * 0.97, minf(v.y * 0.97 + 700.0 * delta, 130.0))
+			p.rot += p.spin * delta
+		else:
+			p.vel *= 0.9
 		if p.t > p.life:
 			parts.remove_at(i)
 		i -= 1
@@ -117,6 +135,9 @@ func _draw() -> void:
 		var k: float = p.t / p.life
 		if p.get("puff", false):
 			draw_circle(p.pos, p.size * (1.0 + k), Color(p.col, (1.0 - k) * p.col.a))
+		elif p.get("conf", false):
+			var pts := Art.xform(PackedVector2Array([Vector2(-1, -0.6), Vector2(1, -0.6), Vector2(1, 0.6), Vector2(-1, 0.6)]), p.pos, Vector2(p.size, p.size * absf(cos(p.rot * 1.7)) + 1.0), p.rot)
+			draw_colored_polygon(pts, Color(p.col, minf(1.0, (1.0 - k) * 3.0)))
 		else:
 			draw_circle(p.pos, p.size * (1.0 - k * 0.6), Color(p.col, 1.0 - k))
 	for bl in bolts:

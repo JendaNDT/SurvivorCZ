@@ -24,7 +24,9 @@ APK je podepsané „sideload“ klíčem z `android/sideload.keystore`, takže 
 - **Elity** (nepřátelé se zlatou září) přicházejí ve 38 % a 70 % času a padá z nich **truhla** s lepší odměnou.
 - **Náčelník** přijde v polovině kraje. Je to hlavní nepřítel kraje ve dvojnásobné velikosti, se zlatou korunou, jménem a ukazatelem životů nad hlavou. Používá dva útoky bosse, které se předem ukážou na zemi. Když je mimo obrazovku, ukáže na něj zlatá šipka. Po porážce z něj padne **truhla náčelníka**: nabídne evoluci, když na ni má hrdina zbraň i předmět, jinak aspoň jednu epickou kartu. Kdo náčelníka nestihne porazit do příchodu bosse, tomu uteče.
 - **Svíčková** doplní třetinu života, **magnet** přitáhne všechen elixír.
-- Když časomíra doběhne, kolem hrdiny vyroste palisáda a přijde **boss**. Má tři fáze a jeho útoky se předem ukážou červeně na zemi.
+- Když časomíra doběhne, kolem hrdiny vyroste palisáda a přijde **boss**. Nejdřív se představí jako v Clash of Clans (hrdina proti bossovi, „VS“, jméno a přídomek), pak dopadne do arény. Má tři fáze a jeho útoky se předem ukážou červeně na zemi.
+- **Smrt bosse:** otřes, bílé záblesky, boss se nakloní a propadne, rozletí se mince a konfety. Každý boss má k tomu vlastní tečku: Vřídelní obr vystřelí poslední gejzír, Pivní králi vyteče pěna, rypadlu se odkutálí kolo, Krakonoš zmizí v mlze a zůstane po něm klobouk, orloji se roztočí ručičky a naposledy zazvoní zvon a tak dál.
+- **Zásahy mají váhu:** při zabití elity, kritickém zabití, změně fáze bosse a silném zásahu hrdiny se hra na okamžik zastaví. Nepřítel se při zásahu smáčkne, kamera se při kritu cukne a tón sbírání elixíru stoupá, když sbíráš rychle za sebou. Hrdinovi se pod nohama práší (na sněhu bíle, na plechu jiskry).
 - **Hvězdy:** 1 za dobytí, 2 když skončíš s aspoň polovinou životů, 3 když bosse porazíš do 60 sekund.
 - **Zlato** (z mincí a za výhru) utratíš ve **Zbrojnici** za trvalá vylepšení: životy, poškození, rychlost, magnet, brnění, regeneraci, přehazování karet, víc zlata, víc zkušeností a „druhou šanci“.
 - Obtížnost roste s počtem už dobytých krajů. Na pořadí tedy nezáleží, každý další kraj je o kus těžší. Kraj trvá zhruba 3 až 5 minut (časomíra 2:30 až 4:14 plus souboj s bossem).
@@ -37,7 +39,7 @@ Na počítači funguje i klávesnice: **WASD / šipky** pohyb, **mezerník** ús
 Ozubené kolečko na mapě nebo **Nastavení** v pauze:
 
 - **Hudba** a **Efekty**: hlasitost zvlášť, posuvníkem.
-- **Vibrace**: telefon krátce zavibruje při zásahu, dopadu bossova útoku, nové úrovni a smrti bosse.
+- **Vibrace**: telefon krátce zavibruje při zásahu, dopadu bossova útoku, nástupu bosse („VS“), nové úrovni a smrti bosse.
 - **Úsporná grafika**: pro slabší telefony. Méně nepřátel naráz (150 místo 230), bez stínů, méně částic, čísel zásahů a dekorací, jednodušší textura země a vykreslování v základním rozlišení. V testu na počítači v rozlišení 1080p běžela hra 2,6× rychleji.
 - **Ukazatel FPS**: v bitvě ukáže snímky za sekundu a počet nepřátel.
 - **Pro leváky**: tlačítka úskoku a hromu se přesunou doleva.
@@ -166,6 +168,9 @@ godot --path . -- --screen=settings --taps="485,229>700,229@2"   # nastavení a 
 godot --path . -- --battle=KVK --left-handed --show-fps      # nastavení jen pro jedno spuštění
 godot --path . -- --battle=PHA --hazard-now                  # nástraha kraje hned a pak každé 3 s
 godot --path . -- --battle=VYS --test-miniboss               # náčelník hned po startu
+godot --path . -- --battle=PHA --test-bossintro              # nástup bosse („VS“) hned po startu
+godot --path . -- --battle=KVK --test-bossdeath=orloj        # smrt libovolného bosse (bez =ID boss kraje)
+godot --path . -- --battle=PHA --test-bossdeath --dev-script=res://scripts/dev/hitstop_check.gd   # kontrola zastavení při zásahu
 godot --path . -- --battle=KVK --test-chief-chest=evo        # truhla náčelníka (bez =evo s epickou kartou)
 godot --path . --fixed-fps 30 -- --soak=20 --autoplay --duration=10   # zátěžový test: 20 bitev za sebou, vypisuje paměť
 godot --path . -- --screen=crash                             # ukázka hlášení o pádu

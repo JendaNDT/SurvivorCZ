@@ -106,6 +106,7 @@ func _check_phase() -> void:
 	if want_phase > phase:
 		phase = want_phase
 		b.banner(phase_names[phase], Color("ff5a48"))
+		b.hitstop(120)
 		Sfx.play("boss", -2.0)
 		b.shake(10.0)
 		var wv := b.ground_fx.shockwave(position, 600.0, 420.0, 22.0, Color(1, 0.4, 0.3))

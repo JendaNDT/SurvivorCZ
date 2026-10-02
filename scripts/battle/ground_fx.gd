@@ -1,8 +1,10 @@
 extends Node2D
 class_name GroundFx
-## Varování na zemi (červené kruhy, čáry), rázové vlny bossů a hranice arény.
+## Varování na zemi (červené kruhy, čáry), rázové vlny bossů, hranice arény
+## a prach pod nohama hrdiny (kreslí se pod postavami).
 
 var warns: Array = []
+var dust: Array = []
 var lines: Array = []
 var waves: Array = []
 var arena_center := Vector2.ZERO
@@ -17,6 +19,17 @@ func circle_warn(pos: Vector2, r: float, dur: float, col: Color = Color(1, 0.15,
 
 func line_warn(pos: Vector2, dir: Vector2, length: float, width: float, dur: float) -> void:
 	lines.append({"pos": pos, "dir": dir, "len": length, "w": width, "t": 0.0, "dur": dur})
+
+
+## Obláček prachu (nebo jiskry na plechu). Barvu volí Battle podle země kraje.
+func puff(pos: Vector2, col: Color, spark: bool = false) -> void:
+	if dust.size() >= 24:
+		dust.pop_front()
+	if spark:
+		var a := randf_range(-PI * 0.85, -PI * 0.15)
+		dust.append({"pos": pos, "vel": Vector2(cos(a), sin(a)) * randf_range(110.0, 200.0), "t": 0.0, "life": 0.35, "col": col, "size": 3.0, "spark": true})
+	else:
+		dust.append({"pos": pos + Vector2(randf_range(-6, 6), 0), "vel": Vector2(randf_range(-18, 18), -16.0), "t": 0.0, "life": 0.6, "col": col, "size": randf_range(9.0, 13.0), "spark": false})
 
 
 func shockwave(center: Vector2, speed: float, max_r: float, width: float, col: Color) -> Dictionary:
@@ -51,10 +64,27 @@ func _process(delta: float) -> void:
 		if wv.r > wv.max:
 			waves.remove_at(i)
 		i -= 1
+	i = dust.size() - 1
+	while i >= 0:
+		var p: Dictionary = dust[i]
+		p.t += delta
+		p.pos += p.vel * delta
+		if p.spark:
+			p.vel += Vector2(0, 600.0 * delta)
+		if p.t >= p.life:
+			dust.remove_at(i)
+		i -= 1
 	queue_redraw()
 
 
 func _draw() -> void:
+	for p in dust:
+		var k: float = p.t / p.life
+		var col: Color = p.col
+		if p.spark:
+			draw_line(p.pos, p.pos - (p.vel as Vector2).normalized() * 7.0, Color(col, 1.0 - k), p.size, true)
+		else:
+			draw_circle(p.pos, p.size * (1.0 + k * 0.9), Color(col, col.a * (1.0 - k)))
 	if arena_r > 0.0:
 		draw_arc(arena_center, arena_r + 6.0, 0, TAU, 96, Color(0, 0, 0, 0.25), 18.0, true)
 		draw_arc(arena_center, arena_r - 4.0, 0, TAU, 96, Color(1, 0.85, 0.4, 0.35), 4.0, true)

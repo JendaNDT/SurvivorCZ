@@ -6,10 +6,10 @@ Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dob�
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Zahrát si verzi 1.3.0 s náčelníky a napsat, jestli jsou moc silní nebo slabí. Pak milník M4 (pocit z boje).**
-Hlavně: jak dlouho trvá souboj s náčelníkem (automat 20–50 s), jestli bije moc tvrdě na Zlínsku a Olomoucku a jestli je vidět šipka, když je mimo obrazovku. Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
+**Zahrát si verzi 1.4.0 a napsat, jak působí nástup a smrt bosse a krátká zastavení při zásahu. Pak milník M5 (Věděl jsi? a Kniha).**
+Hlavně: jestli zastavení při kritickém zabití (nejvýš jednou za sekundu) nepůsobí jako zasekávání, jestli je vidět prach pod nohama a jestli výhra po smrti bosse (asi 2,5 s) nepřichází moc pozdě. Pořád platí otázka z 1.3.0: jak silní jsou náčelníci. Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
 
-Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. S náčelníky (M3) vyhrál 23 z 28 bitev (každý kraj dvakrát), náčelník padl za 10–54 s. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`, náčelníci v `scripts/data/enemies.gd` (`MINIBOSSES`) a `scripts/battle/mini_boss.gd`.
+Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. S náčelníky (M3) vyhrál 23 z 28 bitev (každý kraj dvakrát), náčelník padl za 10–54 s. Ve verzi 1.4.0 vyhrál 24 z 28 (prohry jen Olomoucko a Zlínsko), krátkých zastavení bylo 28–98 za bitvu. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`, náčelníci v `scripts/data/enemies.gd` (`MINIBOSSES`) a `scripts/battle/mini_boss.gd`.
 
 ## ✅ Hotovo
 - Mapa Česka se 14 kraji (skutečné hranice), odemykání sousedů, hvězdy, mlha nad zamčenými kraji, řeky, hory, hrady s vlajkou
@@ -30,6 +30,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
   - vibrace při zásahu, dopadu bossova útoku, hromu, nové úrovni, truhle a smrti bosse
   - uložení verze 2: starý postup se načte (ověřeno), vypnutý zvuk se převede na nulovou hlasitost, smazání postupu nastavení nechá
   - vývojářské parametry `--bench`, `--taps`, `--quality`, `--show-fps`, `--left-handed`, `--test-settings`, `--screen=settings|perf`
+- **M4 Pocit z boje (verze 1.4.0):** nástup bosse jako v Clash of Clans (hrdina na modré stuze, boss na červené, „VS“ s otřesem, jméno a přídomek), krátké zastavení hry při zabití elity, kritickém zabití, změně fáze bosse, silném zásahu hrdiny a smrti náčelníka, smrt bosse (otřes, záblesky, náklon a propad, mince a konfety) a 14 vlastních teček bossů, prach pod nohama podle země (na plechu jiskry), smáčknutí nepřítele při zásahu, cuknutí kamery při kritu, stoupající tón sbírání elixíru. Testy `--test-bossintro`, `--test-bossdeath[=ID]` a kontrola `scripts/dev/hitstop_check.gd`
 - **M3 Náčelníci (verze 1.3.0):** v polovině každého kraje seskočí náčelník: hlavní nepřítel kraje ve dvojnásobné velikosti, se zlatou korunou, září, jménem a ukazatelem životů nad hlavou. Má dva útoky bosse (14 různých kombinací, např. dvojitý výpad žokeje, rázová vlna Golema). Když je mimo obrazovku, ukazuje na něj zlatá šipka. Po porážce padne větší truhla náčelníka: evoluce, když je k dispozici, jinak aspoň jedna epická karta. Když hrdina náčelníka nestihne porazit do příchodu bosse, náčelník uteče. Nástrahy mu ubližují, pásy a vítr ho unášejí. Galerie strana 8, testy `--test-miniboss` a `--test-chief-chest[=evo]`
 - **M2 Nástrahy krajů (verze 1.2.0):** 14 mechanik (gejzíry, sudy, pásy, mlha, vánice, dostih, katapult, tramvaj, rybníky, spory, vítr, kombajn, švestky, praskliny), stuha s nápovědou při prvním výskytu, nové kresby (galerie strana 7) a 10 zvuků, automat se vyhýbá pruhům a nebezpečným místům
 - **Stabilita (verze 1.2.0):**
@@ -50,7 +51,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - ~~M1 Telefon a nastavení~~ hotovo
 - ~~M2 Nástrahy krajů~~ hotovo
 - ~~M3 Minibossové~~ hotovo
-- M4 Pocit z boje: nástup bosse, zastavení při zásahu, prach, smrti bossů
+- ~~M4 Pocit z boje~~ hotovo
 - M5 Věděl jsi? a Kniha: fakta o krajích se zdroji, bestiář, odznaky
 - M6 Hudba podle oblasti: dechovka, cimbál, hory, hutě, Praha
 - M7 Události v boji: oltář, boží muka, obelisk, kramář, zamčená truhla
@@ -77,6 +78,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - **Plynulost se měří od 10. s do konce bitvy**, ne 5.–20. s jako v plánu, protože na začátku je nepřátel málo.
 - **Žádná vlákna na pozadí:** dlouhé výpočty se rozkládají do snímků. Vlákna v GDScriptu poškozovala paměť.
 - **Nástrahy ubližují i nepřátelům:** běžné nepřátele zabijí, takže jsou zbraní i hrozbou. V aréně bosse běží jen počasí a terén.
+- **Smrt bosse a náčelník jsou uzly v bitvě**, ne statický kód: když se bitva uvolní, jejich korutiny se už neprobudí a nesáhnou na smazané objekty.
 - **Náčelník dědí z bosse:** útoky zůstaly v `boss.gd` (ne ve sdíleném souboru z plánu), protože korutina na instanci po uvolnění uzlu nesáhne na smazaný objekt. Náčelník má 25 % životů bosse (ne 35 %) a útoky na 60 % síly, jinak by trval přes minutu a na vysoké obtížnosti zabíjel.
 
 ## 📁 Stav souborů
@@ -84,6 +86,6 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - `scripts/autoload/` – kreslení (Art), pečení textur (Baker), uložení a nastavení (Game), zvuk (Sfx)
 - `scripts/data/` – kraje, nepřátelé, bossové, zbraně, vylepšení
 - `scripts/art/` – všechny kresby
-- `scripts/battle/` – logika bitvy (`hazards.gd` = nástrahy krajů, `mini_boss.gd` = náčelník)
-- `scripts/map/`, `scripts/ui/` – mapa a uživatelské rozhraní (`settings_board.gd`, `cc_slider.gd`, `cc_toggle.gd`)
+- `scripts/battle/` – logika bitvy (`hazards.gd` = nástrahy krajů, `mini_boss.gd` = náčelník, `boss_death.gd` = smrt bosse)
+- `scripts/map/`, `scripts/ui/` – mapa a uživatelské rozhraní (`settings_board.gd`, `cc_slider.gd`, `cc_toggle.gd`, `boss_intro.gd`)
 - `shaders/` – země, moře, tráva na mapě

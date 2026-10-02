@@ -77,6 +77,18 @@ var low_quality := false
 var perf_frames := 0
 var perf_time := 0.0
 var bench := false
+## Krátké zastavení při zásahu (hitstop) a zpomalení po smrti bosse.
+var slowmo := false
+var stop_serial := 0
+var stop_end_ms := 0
+var crit_stop_t := -10.0
+var stops := 0
+## Cuknutí kamery při kritickém zásahu.
+var kick := Vector2.ZERO
+var kick_t := -10.0
+## Prach pod nohama podle země kraje.
+var dust_col := Color(0.62, 0.55, 0.36, 0.7)
+var dust_spark := false
 
 
 func _ready() -> void:
@@ -95,6 +107,11 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--duration="):
 			duration = float(a.substr(11))
+	# test nástupu a smrti konkrétního bosse v libovolném kraji
+	var test_boss := _arg(args, "--test-bossdeath=") + _arg(args, "--test-bossintro=")
+	if test_boss != "" and EnemyDefs.BOSSES.has(test_boss):
+		region = region.duplicate()
+		region.boss = test_boss
 	_build_layers()
 	await _bake()
 	_start()
@@ -111,6 +128,7 @@ func _build_layers() -> void:
 	ground_mat.shader = load("res://shaders/ground.gdshader")
 	var g: Dictionary = region.ground
 	ground_mat.set_shader_parameter("pattern", g.pattern)
+	_pick_dust(int(g.pattern))
 	ground_mat.set_shader_parameter("col_a", Color(g.a))
 	ground_mat.set_shader_parameter("col_b", Color(g.b))
 	ground_mat.set_shader_parameter("col_c", Color(g.c))
@@ -121,10 +139,11 @@ func _build_layers() -> void:
 	world.add_child(ground)
 	ground_fx_layer = Node2D.new()
 	world.add_child(ground_fx_layer)
-	ground_fx = GroundFx.new()
-	world.add_child(ground_fx)
 	shadow_layer = Node2D.new()
 	world.add_child(shadow_layer)
+	# varování a prach až nad stíny, ať je stín hrdiny nepřekryje
+	ground_fx = GroundFx.new()
+	world.add_child(ground_fx)
 	pickup_layer = Node2D.new()
 	world.add_child(pickup_layer)
 	entity_layer = Node2D.new()
@@ -141,6 +160,33 @@ func _build_layers() -> void:
 	ui_layer = CanvasLayer.new()
 	ui_layer.layer = 10
 	add_child(ui_layer)
+
+
+## Barva prachu pod nohama: tráva zelenohnědá, pole a vinice písková, hlína hnědá,
+## dlažba šedá, sníh bílý, na plechu odletují jiskry.
+func _pick_dust(pattern: int) -> void:
+	match pattern:
+		Regions.Ground.FIELD, Regions.Ground.VINEYARD:
+			dust_col = Color(0.74, 0.62, 0.4, 0.7)
+		Regions.Ground.DIRT:
+			dust_col = Color(0.45, 0.34, 0.25, 0.6)
+		Regions.Ground.COBBLE:
+			dust_col = Color(0.8, 0.77, 0.72, 0.5)
+		Regions.Ground.SNOW:
+			dust_col = Color(0.82, 0.88, 0.98, 0.95)
+		Regions.Ground.METAL:
+			dust_col = Color("ffb030")
+			dust_spark = true
+		_:
+			dust_col = Color(0.62, 0.55, 0.36, 0.7)
+
+
+func dust_at(pos: Vector2) -> void:
+	if dust_spark:
+		for i in (2 if low_quality else 3):
+			ground_fx.puff(pos, dust_col, true)
+	else:
+		ground_fx.puff(pos, dust_col)
 
 
 func _bake() -> void:
@@ -269,6 +315,17 @@ func _dev_tests() -> void:
 			overlay.show_settings()
 	elif "--bench" in args:
 		_bench()
+	elif "--test-bossintro" in args or _arg(args, "--test-bossintro=") != "":
+		await get_tree().create_timer(0.5, false).timeout
+		start_boss()
+	elif "--test-bossdeath" in args or _arg(args, "--test-bossdeath=") != "":
+		player.invuln = 1.0e9
+		await get_tree().create_timer(0.5, false).timeout
+		start_boss()
+		while boss == null or boss.intro_t > 0.0:
+			await get_tree().process_frame
+		await get_tree().create_timer(0.4, false).timeout
+		boss.hp = 0.0
 	elif "--test-miniboss" in args:
 		await get_tree().create_timer(1.5, false).timeout
 		spawn_chief()
@@ -357,7 +414,8 @@ func _update_camera(delta: float) -> void:
 		return
 	camera.position = camera.position.lerp(player.position, 1.0 - exp(-delta * 8.0))
 	shake_amt = maxf(0.0, shake_amt - delta * 40.0)
-	camera.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake_amt
+	kick = kick.lerp(Vector2.ZERO, 1.0 - exp(-delta * 22.0))
+	camera.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake_amt + kick
 	var vr := view_rect().grow(80.0)
 	ground.position = vr.position
 	ground.size = vr.size
@@ -366,6 +424,32 @@ func _update_camera(delta: float) -> void:
 func view_rect() -> Rect2:
 	var vs := get_viewport_rect().size / camera.zoom
 	return Rect2(camera.position - vs * 0.5, vs)
+
+
+## Krátké zastavení hry při silném zásahu. Časovač ignoruje časové měřítko a běží
+## i v pauze; během zpomalení po smrti bosse se zastavení nespouští.
+func hitstop(ms: int) -> void:
+	if slowmo or bench or get_tree().paused or (state != State.PLAY and state != State.BOSS):
+		return
+	var now := Time.get_ticks_msec()
+	if now + ms <= stop_end_ms:
+		return
+	stop_end_ms = now + ms
+	stops += 1
+	stop_serial += 1
+	var my := stop_serial
+	Engine.time_scale = 0.05
+	await get_tree().create_timer(ms / 1000.0, true, false, true).timeout
+	if my == stop_serial and not slowmo:
+		Engine.time_scale = 1.0
+
+
+## Zruší běžící zastavení (pauza, výběr karet), aby okna nejela zpomaleně.
+func _cancel_hitstop() -> void:
+	stop_serial += 1
+	stop_end_ms = 0
+	if not slowmo:
+		Engine.time_scale = 1.0
 
 
 ## Otřes kamery. Silné otřesy (dopady bossových útoků, hrom) i zavibrují.
@@ -514,6 +598,10 @@ func damage_enemy(e: Enemy, amount: float, tags: Array, dir: Vector2 = Vector2.Z
 		return
 	e.hp -= dmg
 	e.flash = 0.07
+	e.squash = Enemy.SQUASH
+	if crit and time_total - kick_t > 0.2:
+		kick_t = time_total
+		kick = (dir if dir != Vector2.ZERO else Vector2.from_angle(randf() * TAU)) * 5.0
 	if knock > 0.0 and not e.is_boss:
 		e.knock += dir * knock * (1.0 - e.knock_res)
 	var col := Color("ffe14a") if crit else (Color("cfefff") if quiet else Color.WHITE)
@@ -524,6 +612,9 @@ func damage_enemy(e: Enemy, amount: float, tags: Array, dir: Vector2 = Vector2.Z
 		if e.is_boss:
 			(e as Boss).die()
 		else:
+			if crit and time_total - crit_stop_t > 1.0:
+				crit_stop_t = time_total
+				hitstop(30)
 			enemies.kill(e)
 
 
@@ -571,6 +662,7 @@ func on_enemy_killed(e: Enemy, drops: bool) -> void:
 	pickups.drop_xp(e.position, e.xp)
 	var r := randf()
 	if e.elite:
+		hitstop(60)
 		pickups.drop("chest", e.position)
 		for i in 6:
 			pickups.drop("coin", e.position, 1)
@@ -597,6 +689,7 @@ func hit_player(dmg: float, src: Vector2, big: bool = false) -> void:
 	player.flash = 0.3
 	if big:
 		player.invuln = 0.6
+		hitstop(50)
 	fx.number(player.position + Vector2(0, -50), d, false, Color("ff5a48"))
 	Game.vibrate(80 if big else 40)
 	shake(5.0 if not big else 9.0)
@@ -664,6 +757,7 @@ func _open_choice() -> void:
 		return
 	resume_state = state
 	state = State.LEVELUP
+	_cancel_hitstop()
 	get_tree().paused = true
 	var cards: Array
 	if pending_chief > 0:
@@ -912,6 +1006,7 @@ func chief_killed(mb: MiniBoss) -> void:
 	kills += 1
 	ult = minf(1.0, ult + 0.25)
 	Game.add_stat("chiefs", 1)
+	hitstop(90)
 	Sfx.play("boom", -2.0)
 	Game.vibrate(120)
 	shake(14.0)
@@ -955,11 +1050,11 @@ func start_boss() -> void:
 	_build_palisade()
 	var ztw := camera.create_tween()
 	ztw.tween_property(camera, "zoom", Vector2.ONE * 0.8, 1.0).set_trans(Tween.TRANS_SINE)
-	var bdef: Dictionary = EnemyDefs.BOSSES[region.boss]
-	banner(bdef.name, Color("ff5a48"), bdef.title)
+	hud.banners.clear()
+	overlay.show_boss_intro(EnemyDefs.BOSSES[region.boss], region.boss)
 	Sfx.play("boss")
 	Sfx.start_music("boss")
-	await get_tree().create_timer(1.4, false).timeout
+	await get_tree().create_timer(BossIntro.DUR, false).timeout
 	if state != State.BOSS_INTRO:
 		return
 	boss = Boss.new()
@@ -995,23 +1090,20 @@ func boss_killed() -> void:
 	state = State.BOSS_INTRO
 	boss_time = time_total - boss_start
 	Game.add_stat("bosses", 1)
-	Sfx.play("boom")
-	Game.vibrate(150)
-	shake(22.0)
-	for i in 5:
-		fx.explosion(boss.position + Vector2(randf_range(-60, 60), randf_range(-60, 60)), 90.0 + i * 20.0, Color("ffd23f"))
-	for i in 20:
-		pickups.drop("coin", boss.position, 1)
 	enemies.flee_all()
 	projectiles.clear_hostile()
-	var tw := boss.create_tween()
-	tw.tween_property(boss, "modulate", Color(3, 3, 3, 0), 0.8)
 	boss.shadow.visible = false
+	# společná sekvence a tečka podle bosse (scripts/battle/boss_death.gd)
+	BossDeath.start(self, boss)
+	slowmo = true
+	_cancel_hitstop()
 	Engine.time_scale = 0.35
 	await get_tree().create_timer(0.7, true, false, true).timeout
+	slowmo = false
 	Engine.time_scale = 1.0
+	await get_tree().create_timer(BossDeath.MAGNET_AT, false).timeout
 	pickups.magnetize_all()
-	await get_tree().create_timer(1.0, false).timeout
+	await get_tree().create_timer(BossDeath.WIN_AT - BossDeath.MAGNET_AT, false).timeout
 	win()
 
 
@@ -1036,7 +1128,7 @@ func win() -> void:
 	Sfx.play("win")
 	overlay.show_win(stars, total, first)
 	if autoplay:
-		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d" % [stars, total, time_total, boss_time, level, kills])
+		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d zastavení=%d" % [stars, total, time_total, boss_time, level, kills, stops])
 		if "--quit-at-end" in OS.get_cmdline_user_args():
 			get_tree().quit()
 		_soak_leave()
@@ -1058,7 +1150,7 @@ func lose() -> void:
 	player.body.modulate = Color(0.5, 0.5, 0.5)
 	overlay.show_lose(total)
 	if autoplay:
-		print("PROHRA: čas=%.0f lvl=%d zabito=%d boss=%s" % [time_total, level, kills, ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-"])
+		print("PROHRA: čas=%.0f lvl=%d zabito=%d boss=%s zastavení=%d" % [time_total, level, kills, ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-", stops])
 		if "--quit-at-end" in OS.get_cmdline_user_args():
 			get_tree().quit()
 		_soak_leave()
@@ -1078,6 +1170,7 @@ func pause_game() -> void:
 		return
 	resume_state = state
 	state = State.PAUSE
+	_cancel_hitstop()
 	get_tree().paused = true
 	overlay.show_pause()
 

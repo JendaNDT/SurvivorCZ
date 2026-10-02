@@ -136,6 +136,18 @@ func _cards(cards: Array) -> void:
 		_pop(c, 0.06 * i)
 
 
+# ---------------------------------------------------------------- nástup bosse
+
+## Hrdina proti bossovi přes celou obrazovku (1,8 s). Nezastaví hru ani dotyky.
+func show_boss_intro(bdef: Dictionary, boss_id: String) -> void:
+	var bi := BossIntro.new()
+	bi.bdef = bdef
+	bi.boss_tex = Baker.tex("b:%s:0" % boss_id)
+	bi.hero_tex = Baker.tex("hero:0")
+	bi.b = b
+	content.add_child(bi)
+
+
 # ---------------------------------------------------------------- pauza
 
 func show_pause() -> void:

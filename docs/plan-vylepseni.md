@@ -11,7 +11,7 @@ Plán pokrývá všechny navržené vylepšení: nástrahy a minibosse v krajíc
 | M1 ✅ | Telefon a nastavení | úsporná grafika, FPS, vibrace, hlasitost hudby a efektů zvlášť, leváci | hotovo (verze 1.1.0) |
 | M2 ✅ | Nástrahy krajů | 14 mechanik, každý kraj se hraje jinak | hotovo (verze 1.2.0) |
 | M3 ✅ | Minibossové | náčelník v polovině každého kraje | hotovo (verze 1.3.0) |
-| M4 | Pocit z boje | nástup bosse, krátké zastavení při zásahu, prach, smrti bossů | 1 session |
+| M4 ✅ | Pocit z boje | nástup bosse, krátké zastavení při zásahu, prach, smrti bossů | hotovo (verze 1.4.0) |
 | M5 | Věděl jsi? a Kniha | fakta o krajích, bestiář, odznaky | 1 session |
 | M6 | Hudba podle oblasti | dechovka, cimbál, hory, hutě, Praha | 1 session |
 | M7 | Události v boji | oltář, boží muka, obelisk, kramář, zamčená truhla | 1–2 sessions |
@@ -239,6 +239,13 @@ Malý štítek v HUD pod ukazateli: FPS a počet nepřátel. Zapíná se v nasta
 ## M4 Pocit z boje
 
 **Cíl:** boj víc „sedí“: nástup bosse jako v Clash of Clans, zásahy mají váhu.
+
+**Stav: hotovo ve verzi 1.4.0.** Proti plánu:
+- Nástup je samostatný ovládací prvek `BossIntro` (scripts/ui/boss_intro.gd), který `BattleOverlay.show_boss_intro()` jen přidá. Nezastaví hru ani dotyky, pauza ho zruší. Stuhy oznámení z HUD se při nástupu smažou.
+- Zastavení při zásahu vrací časovač, který ignoruje měřítko, jak plán chtěl. Navíc běží i v pauze, delší zastavení přebije kratší a pauza nebo výběr karet zastavení hned zruší, aby okna nejela 20× pomaleji. Přibylo zastavení 90 ms při smrti náčelníka. Kontrola `scripts/dev/hitstop_check.gd` prošla v ladicím režimu.
+- Prach kreslí `GroundFx.puff()` (ne `Fx.dust`), protože `Fx` je nad postavami. `GroundFx` se kvůli tomu přesunul nad vrstvu stínů, takže i červená varování jsou teď nad stíny.
+- Smrt bosse je uzel `BossDeath` v bitvě (ne statický kód) ze stejného důvodu jako náčelník: když se bitva uvolní, nic se už neprobudí. Tečky: gejzír, pěna, kolo, vlny signálu (Ještěd), klobouk v mlze, perníková srdce, prapor a „Z z z“ (Blaník), orloj se zvonem, dušičky z hrníčků, hříbky se sporami, kouř z tlamy, smrad a mouchy (tvarůžky), krabice od bot (Zlín), láva (pec). Mince se rozletí dál, aby je nezakryla tečka.
+- Výhra přijde asi 2,5 s po smrti bosse (dřív 1,3 s), aby byla tečka vidět.
 
 - **Nástup bosse:** `BattleOverlay.show_boss_intro(bdef)` na 1,8 s během `State.BOSS_INTRO`. Obrazovka ztmavne, zleva přijede portrét hrdiny na modré stuze, zprava portrét bosse (upečený `b:<id>:0`) na červené, uprostřed velké „VS“ s otřesem, pod tím jméno a přídomek bosse. Pak boss dopadne jako dnes.
 - **Krátké zastavení při zásahu:** `Battle.hitstop(ms)` nastaví `Engine.time_scale = 0.05` a vrátí ho časovačem, který ignoruje časové měřítko (`create_timer(t, true, false, true)`). Kdy: zabití elity 60 ms, kritické zabití 30 ms (nejvýš jednou za sekundu), změna fáze bosse 120 ms, silný zásah hrdiny 50 ms. Hlídat, aby se volání nepřekrývala se zpomalením po smrti bosse.

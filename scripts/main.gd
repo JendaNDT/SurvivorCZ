@@ -171,7 +171,9 @@ func _process(delta: float) -> void:
 	if shot_clock >= shot_times[0]:
 		var t: float = shot_times.pop_front()
 		var img := get_viewport().get_texture().get_image()
-		img.save_png("%s_%03d.png" % [shots_prefix, int(t)])
+		# celé sekundy: s_010.png, desetiny: s_010.5.png
+		var stamp := "%03d" % int(t) if is_equal_approx(t, roundf(t)) else "%05.1f" % t
+		img.save_png("%s_%s.png" % [shots_prefix, stamp])
 		if shot_times.is_empty():
 			get_tree().quit()
 
