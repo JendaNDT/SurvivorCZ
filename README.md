@@ -34,6 +34,15 @@ APK je podepsané „sideload“ klíčem z `android/sideload.keystore`, takže 
 - **Smrt bosse:** otřes, bílé záblesky, boss se nakloní a propadne, rozletí se mince a konfety. Každý boss má k tomu vlastní tečku: Vřídelní obr vystřelí poslední gejzír, Pivní králi vyteče pěna, rypadlu se odkutálí kolo, Krakonoš zmizí v mlze a zůstane po něm klobouk, orloji se roztočí ručičky a naposledy zazvoní zvon a tak dál.
 - **Zásahy mají váhu:** při zabití elity, kritickém zabití, změně fáze bosse a silném zásahu hrdiny se hra na okamžik zastaví. Nepřítel se při zásahu smáčkne, kamera se při kritu cukne a tón sbírání elixíru stoupá, když sbíráš rychle za sebou. Hrdinovi se pod nohama práší (na sněhu bíle, na plechu jiskry).
 - **Hvězdy:** 1 za dobytí, 2 když skončíš s aspoň polovinou životů, 3 když bosse porazíš do 60 sekund.
+- **Hrdinové** (fialové tlačítko vedle loga, nebo „Změnit“ v kartě kraje). Odemykají se úspěchy:
+
+| Hrdina | Začíná s | Vlastnosti | Ultimátka | Odemčení |
+| --- | --- | --- | --- | --- |
+| Čech | mečem | vyvážený | **Hrom**: blesky zasáhnou všechny nepřátele na obrazovce | od začátku |
+| Bivoj | kruhovými štíty | +30 % životů, +50 % odhoz, −10 % rychlosti | **Kančí úder**: dupnutí odhodí a na 2 s omráčí vše kolem | poraz 3 bosse |
+| Kněžna Libuše | bleskem (úroveň 3) a mrazivou aurou | +20 % zkušeností, +1 přehození, −10 % životů | **Věštba**: nepřátelé na 4 s zamrznou, jejich střely zmizí | dobyj Prahu |
+| Horymír a Šemík | kuší (úroveň 3) a vrhací sekerou | +15 % rychlosti a životů, delší úskok, který zraňuje a je nabitý o 40 % dřív | **Skok**: Šemík skočí ve směru pohybu, dopad zraní okolí | získej 20 hvězd |
+
 - **Zlato** (z mincí a za výhru) utratíš ve **Zbrojnici** za trvalá vylepšení: životy, poškození, rychlost, magnet, brnění, regeneraci, přehazování karet, víc zlata, víc zkušeností a „druhou šanci“.
 - Obtížnost roste s počtem už dobytých krajů. Na pořadí tedy nezáleží, každý další kraj je o kus těžší. Kraj trvá zhruba 3 až 5 minut (časomíra 2:30 až 4:14 plus souboj s bossem).
 - Hra končí oslavou, když dobudeš všech 14 krajů.
@@ -175,6 +184,8 @@ godot --path . -- --battle=KVK --left-handed --show-fps      # nastavení jen pr
 godot --path . -- --battle=PHA --hazard-now                  # nástraha kraje hned a pak každé 3 s
 godot --path . -- --battle=VYS --test-miniboss               # náčelník hned po startu
 godot --path . -- --battle=KVK --test-event=oltar            # událost hned u hrdiny (oltar, muka, obelisk, kramar, truhla)
+godot --path . -- --battle=STC --hero=bivoj --test-ult       # hrdina pro jedno spuštění (cech, bivoj, libuse, horymir) a jeho ultimátka
+godot --path . -- --screen=heroes --unlock-heroes            # deska hrdinů se všemi odemčenými
 godot --path . -- --battle=PHA --test-bossintro              # nástup bosse („VS“) hned po startu
 godot --path . -- --battle=KVK --test-bossdeath=orloj        # smrt libovolného bosse (bez =ID boss kraje)
 godot --path . -- --battle=PHA --test-bossdeath --dev-script=res://scripts/dev/hitstop_check.gd   # kontrola zastavení při zásahu
@@ -182,5 +193,5 @@ godot --path . -- --battle=KVK --test-chief-chest=evo        # truhla náčelní
 godot --path . --fixed-fps 30 -- --soak=20 --autoplay --duration=10   # zátěžový test: 20 bitev za sebou, vypisuje paměť
 godot --path . -- --screen=crash                             # ukázka hlášení o pádu
 godot --path . res://scenes/dev/gallery.tscn -- --page=7     # kresby nástrah
-godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy, 8 náčelníci, 9 události)
+godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy, 8 náčelníci, 9 události, 0 hrdinové)
 ```

@@ -23,6 +23,16 @@ var knock := Vector2.ZERO
 var anim_t := 0.0
 var ghost_t := 0.0
 var dust_t := 0.0
+## Úskok podle hrdiny (Horymír má delší, rychleji nabitý a zraňující).
+var dash_cd_max := DASH_CD
+var dash_len := DASH_TIME
+var dash_dmg := false
+var dash_serial := 0
+## Šemíkův skok (ultimátka Horymíra).
+var leap_t := 0.0
+var leap_dur := 0.5
+var leap_from := Vector2.ZERO
+var leap_to := Vector2.ZERO
 
 var body: Sprite2D
 var shadow: Sprite2D
@@ -31,7 +41,10 @@ var frames: Array = []
 
 func init(battle: Battle) -> void:
 	b = battle
-	frames = [Baker.tex("hero:0"), Baker.tex("hero:1")]
+	frames = [Baker.tex("hero:%s:0" % b.hero_id), Baker.tex("hero:%s:1" % b.hero_id)]
+	dash_cd_max = DASH_CD * (1.0 - float(HeroDefs.mod(b.hero_id, "dash_cd")))
+	dash_len = DASH_TIME * (1.0 + float(HeroDefs.mod(b.hero_id, "dash_len")))
+	dash_dmg = bool(HeroDefs.mod(b.hero_id, "dash_dmg", false))
 	body = Sprite2D.new()
 	body.texture = frames[0]
 	body.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -40,7 +53,7 @@ func init(battle: Battle) -> void:
 	add_child(body)
 	shadow = Sprite2D.new()
 	shadow.texture = Baker.tex("shadow")
-	shadow.scale = Vector2(1.15, 1.0)
+	shadow.scale = Vector2(1.15, 1.0) if b.hero_id != "horymir" else Vector2(2.2, 1.3)
 	b.shadow_layer.add_child(shadow)
 
 
@@ -51,15 +64,27 @@ func can_dash() -> bool:
 func dash() -> void:
 	if not can_dash():
 		return
-	dash_t = DASH_TIME
-	dash_cd = DASH_CD
+	dash_t = dash_len
+	dash_cd = dash_cd_max
+	dash_serial += 1
 	dash_dir = move_dir if move_dir.length() > 0.1 else face_dir
-	invuln = maxf(invuln, DASH_TIME + 0.1)
+	invuln = maxf(invuln, dash_len + 0.1)
 	Sfx.play("dash", -4.0)
 	b.fx.poof(position + Vector2(0, 20), Color(1, 1, 1, 0.7))
 
 
+## Velký skok o `off` (ultimátka Horymíra), během něj je hrdina nezranitelný.
+func leap(off: Vector2) -> void:
+	leap_from = position
+	leap_to = b.clamp_to_arena(position + off, r)
+	leap_t = leap_dur
+	invuln = maxf(invuln, leap_dur + 0.2)
+
+
 func update(delta: float, input: Vector2) -> void:
+	if leap_t > 0.0:
+		_update_leap(delta)
+		return
 	move_dir = input.limit_length(1.0)
 	if move_dir.length() > 0.15:
 		face_dir = move_dir.normalized()
@@ -76,6 +101,8 @@ func update(delta: float, input: Vector2) -> void:
 		if ghost_t <= 0.0:
 			ghost_t = 0.04
 			_ghost()
+		if dash_dmg:
+			_dash_hit()
 	position += (vel + knock) * delta
 	knock = knock.move_toward(Vector2.ZERO, delta * 1600.0)
 	if b.arena_radius > 0.0:
@@ -104,6 +131,33 @@ func update(delta: float, input: Vector2) -> void:
 	else:
 		body.modulate = Color.WHITE
 	shadow.position = position + Vector2(0, 30)
+
+
+## Horymírův úskok zraní každého nepřítele, kterým proběhne (jednou za úskok).
+func _dash_hit() -> void:
+	for e in b.enemies.query(position, r + 26.0):
+		if int(e.hit_cd.get("dash", -1)) == dash_serial:
+			continue
+		e.hit_cd["dash"] = dash_serial
+		b.damage_enemy(e, 18.0 + b.level * 2.5, ["fyz"], dash_dir, 380.0)
+
+
+func _update_leap(delta: float) -> void:
+	leap_t -= delta
+	var k := clampf(1.0 - leap_t / leap_dur, 0.0, 1.0)
+	position = leap_from.lerp(leap_to, k)
+	body.position.y = -6.0 - sin(k * PI) * 90.0
+	shadow.position = position + Vector2(0, 30)
+	shadow.scale = Vector2(2.2, 1.3) * (1.0 - 0.4 * sin(k * PI))
+	invuln = maxf(invuln, 0.1)
+	ghost_t -= delta
+	if ghost_t <= 0.0:
+		ghost_t = 0.05
+		_ghost()
+	if leap_t <= 0.0:
+		body.position.y = -6.0
+		shadow.scale = Vector2(2.2, 1.3)
+		b.leap_land(position)
 
 
 func _ghost() -> void:

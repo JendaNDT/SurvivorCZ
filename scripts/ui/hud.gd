@@ -23,8 +23,12 @@ func banner(text: String, col: Color, sub: String = "", dur: float = 2.4) -> voi
 		banners.pop_front()
 
 
-func flash_screen() -> void:
+var flash_col := Color(1, 1, 0.85)
+
+
+func flash_screen(col: Color = Color(1, 1, 0.85)) -> void:
 	flash_a = 0.85
+	flash_col = col
 
 
 func _process(delta: float) -> void:
@@ -52,8 +56,9 @@ func _draw() -> void:
 	var pc := Vector2(52, 50)
 	Art.circle(self, pc, 36, Color("3a5a8a"), 4.0)
 	draw_circle(pc, 30, Color("6fb8ff"))
-	if Baker.has("icon:hero"):
-		draw_texture_rect(Baker.tex("icon:hero"), Rect2(pc - Vector2(34, 36), Vector2(68, 68)), false)
+	var hkey := "icon:hero_" + b.hero_id
+	if Baker.has(hkey):
+		draw_texture_rect(Baker.tex(hkey), Rect2(pc - Vector2(34, 36), Vector2(68, 68)), false)
 	ci_level_badge(pc + Vector2(-28, 28), b.level)
 	var hp_r := Rect2(96, top + 6, 250, 26)
 	Art.bar(self, hp_r, b.player.hp / b.player.max_hp, Art.HP_RED)
@@ -107,7 +112,7 @@ func _draw() -> void:
 		for i in banners.size():
 			_draw_banner(banners[i], vs, i)
 	if flash_a > 0.0:
-		draw_rect(Rect2(Vector2.ZERO, vs), Color(1, 1, 0.85, flash_a * 0.6))
+		draw_rect(Rect2(Vector2.ZERO, vs), Color(flash_col, flash_a * 0.6))
 	# vinětace při nízkých životech
 	if b.player.hp < b.player.max_hp * 0.3 and b.state != Battle.State.LOSE:
 		var a := 0.25 + 0.15 * sin(b.time_total * 6.0)

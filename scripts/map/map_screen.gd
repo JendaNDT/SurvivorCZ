@@ -76,6 +76,14 @@ func _ready() -> void:
 		for id in fresh:
 			names.append(Regions.DATA[id].short)
 		_toast("Odemčeno: " + ", ".join(names))
+	# podmínky mohly být splněné už ve starším uložení
+	Game.check_hero_unlocks()
+	if not Game.fresh_heroes.is_empty():
+		var hn := []
+		for hid in Game.fresh_heroes:
+			hn.append(HeroDefs.get_hero(hid).name)
+		Game.fresh_heroes.clear()
+		_hero_unlocked_toast("Nový hrdina: " + ", ".join(hn) + "!")
 	if not Game.crash_report.is_empty():
 		var rep: Dictionary = Game.crash_report
 		Game.crash_report = {}
@@ -89,6 +97,8 @@ func _ready() -> void:
 		Game.perf_offer = 0.0
 	elif open_on_start == "shop":
 		show_shop()
+	elif open_on_start == "heroes":
+		show_heroes()
 	elif open_on_start == "settings":
 		show_settings()
 	elif open_on_start == "perf":
@@ -113,7 +123,8 @@ func _bake() -> void:
 	jobs.append({"key": "map:tree", "size": Vector2(40, 50), "fn": MapArt.tree, "origin": Vector2(0.5, 0.85)})
 	jobs.append({"key": "map:pine", "size": Vector2(36, 54), "fn": MapArt.pine, "origin": Vector2(0.5, 0.85)})
 	jobs.append({"key": "map:castle", "size": Vector2(90, 90), "fn": MapArt.castle, "origin": Vector2(0.5, 0.8)})
-	jobs.append({"key": "hero:0", "size": HeroArt.SIZE, "fn": HeroArt.draw, "t": 0.0})
+	for hid in HeroDefs.ORDER:
+		jobs.append({"key": "hero:%s:0" % hid, "size": HeroArt.size_of(hid), "fn": func(ci, tt): HeroArt.draw(ci, tt, hid), "t": 0.0})
 	jobs.append({"key": "map:arrow", "size": Vector2(50, 50), "fn": MapArt.arrow})
 	await Baker.bake_many(jobs)
 
@@ -267,11 +278,17 @@ func show_region(id: String) -> void:
 		bt = CCButton.make("ÚTOK!", Art.BTN_GREEN, Vector2(300, 82), 38)
 		bt.icon_key = "ui:swords"
 		bt.icon_scale = 0.55
-	bt.position = Vector2((board.size.x - bt.size.x) * 0.5, board.size.y - bt.size.y - 12)
+	bt.position = Vector2(maxf((board.size.x - bt.size.x) * 0.5, 226.0 if st != "locked" else 0.0), board.size.y - bt.size.y - 12)
 	bt.pressed.connect(func():
 		Sfx.play("warn", -6.0)
 		attack.emit(id))
 	board.add_child(bt)
+	# hrdina do boje (M8)
+	if st != "locked":
+		var hb := CCButton.make("Změnit", Color("b25cff"), Vector2(104, 48), 20)
+		hb.position = Vector2(88, board.size.y - 62)
+		hb.pressed.connect(func(): show_heroes.call_deferred(id))
+		board.add_child(hb)
 	# portréty nepřátel a bosse se upečou na požádání
 	var jobs := []
 	for eid in r.enemies:
@@ -294,6 +311,37 @@ func show_shop() -> void:
 	shop.build()
 	_pop(shop)
 	_close_button(shop, Vector2(shop.size.x - 44, -14))
+
+
+## Deska hrdinů. Když se otevřela z karty kraje, po zavření se k ní vrátí.
+func show_heroes(back_to: String = "") -> void:
+	Game.note("hrdinové")
+	Game.mark_heroes_seen()
+	_modal()
+	var hb := MapUI.HeroBoard.new()
+	hb.m = self
+	hb.size = Vector2(minf(1080.0, size.x - 30), minf(580.0, size.y - 16))
+	hb.position = (size - hb.size) * 0.5 + Vector2(0, 6)
+	popup_layer.add_child(hb)
+	hb.build()
+	_pop(hb)
+	var x := CCButton.make("✕", Art.BTN_RED, Vector2(56, 56), 26)
+	x.radius = 28.0
+	x.position = Vector2(hb.size.x - 44, -14)
+	x.pressed.connect(func():
+		if back_to != "":
+			select.call_deferred(back_to)
+		else:
+			close_popup())
+	hb.add_child(x)
+	topbar.queue_redraw()
+
+
+func _hero_unlocked_toast(text: String) -> void:
+	await get_tree().create_timer(1.2).timeout
+	Sfx.play("levelup")
+	_toast(text)
+	topbar.queue_redraw()
 
 
 func show_settings() -> void:

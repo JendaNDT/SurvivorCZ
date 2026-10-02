@@ -8,7 +8,7 @@ class_name Main
 ##   --autoplay        hraje počítač (test)
 ##   --shots=cesta     ukládá snímky obrazovky
 ##   --shot-times=2,8  kdy (v sekundách) snímky pořídit, pak hra skončí
-##   --screen=map|shop|settings|perf|ending   rovnou otevře danou obrazovku
+##   --screen=map|shop|settings|perf|heroes|ending   rovnou otevře danou obrazovku
 ##   --quality=low, --show-fps, --left-handed   nastavení jen pro toto spuštění
 ##   --bench           v bitvě drží plný počet nepřátel a vypíše průměrné FPS
 ##   --dev-script=res://x.gd   přidá uzel s vývojářským skriptem (např. sonda zvuku)
@@ -32,6 +32,14 @@ static func icon_jobs() -> Array:
 	var ids: Array = Upgrades.WEAPONS.keys() + Upgrades.EVOLUTIONS.keys() + Upgrades.PASSIVES.keys() + ["reroll", "coin", "srdce_zlate", "hero"]
 	for id in ids:
 		jobs.append({"key": "icon:" + id, "size": IconArt.SIZE, "fn": func(ci, t): IconArt.draw(ci, id, t)})
+	# portréty hrdinů (M8): hlava a ramena, Horymír i se Šemíkem
+	for hid in HeroDefs.ORDER:
+		var k := 0.36 if hid == "horymir" else 0.5
+		var off := Vector2(-4, 26) if hid == "horymir" else Vector2(0, 14)
+		jobs.append({"key": "icon:hero_" + hid, "size": IconArt.SIZE, "fn": func(ci, t):
+			ci.draw_set_transform(off, 0, Vector2(k, k))
+			HeroArt.draw(ci, t, hid)
+			ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)})
 	var ui := {
 		"boot": func(ci, _t): Art.icon_boot(ci, Vector2(6, 0), 26),
 		"bolt": func(ci, _t): Art.icon_bolt(ci, Vector2.ZERO, 28),
@@ -86,6 +94,8 @@ func _ready() -> void:
 			Game.reset()
 		elif a == "--skip-intro":
 			Game.data.intro_seen = true
+		elif a == "--unlock-heroes":
+			Game.data.heroes.unlocked = HeroDefs.ORDER.duplicate()
 		elif a.begins_with("--gold="):
 			Game.data.gold = int(a.substr(7))
 		elif a.begins_with("--meta="):
@@ -108,7 +118,7 @@ func _ready() -> void:
 		show_map(false)
 	elif battle_id != "":
 		start_battle(battle_id, false)
-	elif screen in ["shop", "settings", "perf", "crash", "quit"]:
+	elif screen in ["shop", "settings", "perf", "crash", "quit", "heroes"]:
 		show_map(false, screen)
 	elif screen.begins_with("region:"):
 		show_map(false, screen)

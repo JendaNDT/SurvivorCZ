@@ -262,7 +262,7 @@ func show_boss_intro(bdef: Dictionary, boss_id: String) -> void:
 	var bi := BossIntro.new()
 	bi.bdef = bdef
 	bi.boss_tex = Baker.tex("b:%s:0" % boss_id)
-	bi.hero_tex = Baker.tex("hero:0")
+	bi.hero_tex = Baker.tex("hero:%s:0" % b.hero_id)
 	bi.b = b
 	content.add_child(bi)
 

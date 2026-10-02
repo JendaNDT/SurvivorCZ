@@ -31,6 +31,8 @@ Pocit z boje (M4): `Battle.hitstop(ms)` nastaví `Engine.time_scale = 0.05` a vr
 
 Události v boji (M7): data `scripts/data/events.gd`, logika `EventSystem` (scripts/battle/events.gd, uzel ve světě nad `GroundFx`, kreslí kruhy a postup), kresby `scripts/art/event_art.gd` (klíče `ev:*`, uvolňují se v `Battle.leave()`). Dialog události zastaví hru přes `Battle.event_pause()` a zavře `event_resume()`; karty z události nabízí `offer_cards()` (zdroje `legend`, `legend_chest`, `epic`). Požehnání jsou v `Battle.buffs` a započítá je `recalc_stats()`. Tlačítka v dialogu volají akce přes `call_deferred`, kramář tlačítka jen přepisuje. Test: `--test-event=oltar|muka|obelisk|kramar|truhla`.
 
+Hrdinové (M8): data `scripts/data/heroes.gd` (`HeroDefs`: startovní zbraň, `mods`, ultimátka, podmínka odemčení), kresby `HeroArt.draw(ci, t, id)` (klíče `hero:<id>:0/1`, portréty `icon:hero_<id>` z `Main.icon_jobs`). `Battle.hero_id` se bere z `Game.hero()` nebo z `--hero=`, vlastnosti započítá `recalc_stats()`, ultimátky jsou v `Battle.use_ult()` (`_ult_hrom/_ult_stomp/_ult_freeze/_ult_leap`), Horymírův úskok a skok v `Player`. Odemykání: `Game.check_hero_unlocks()` po výhře i při otevření mapy, uložení `data.heroes` (selected, unlocked, seen).
+
 ## Testování
 
 ```bash

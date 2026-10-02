@@ -1,7 +1,7 @@
 extends Node2D
 ## Vývojářská galerie: upeče a zobrazí všechny kresby (kontrola grafiky).
 ## Spuštění: godot --path . res://scenes/dev/gallery.tscn -- [--shot=soubor.png] [--page=N]
-## Stránky: 0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy krajů,
+## Stránky: 0 hrdinové, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy krajů,
 ## 8 náčelníci (nepřítel s korunou), 9 události v boji
 
 var page := 0
@@ -19,12 +19,14 @@ func _ready() -> void:
 	var jobs := []
 	var ids := []
 	if page == 0:
-		jobs.append({"key": "hero0", "size": HeroArt.SIZE, "fn": HeroArt.draw, "t": 0.0})
-		jobs.append({"key": "hero1", "size": HeroArt.SIZE, "fn": HeroArt.draw, "t": 1.0})
-		ids = ["hero0", "hero1"]
+		for hid in HeroDefs.ORDER:
+			for t in [0.0, 1.0]:
+				var key: String = "h_%s%d" % [hid, int(t)]
+				jobs.append({"key": key, "size": HeroArt.size_of(hid), "fn": func(ci, tt): HeroArt.draw(ci, tt, hid), "t": t})
+				ids.append(key)
 	var all_enemies: Array = EnemyDefs.ENEMIES.keys()
 	var start := 0 if page <= 1 else (page - 1) * 24
-	var spacing := 140.0
+	var spacing := 230.0 if page == 0 else 140.0
 	if page == 3:
 		spacing = 260.0
 		for id in EnemyDefs.BOSSES.keys():

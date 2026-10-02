@@ -14,6 +14,9 @@ const CHUNK := 640.0
 
 var region_id := "KVK"
 var region: Dictionary
+## Hrdina této bitvy (M8) a jeho data z HeroDefs.
+var hero_id := "cech"
+var hero: Dictionary
 var tier := 0
 var duration := 150.0
 var elapsed := 0.0
@@ -100,6 +103,11 @@ func _ready() -> void:
 	low_quality = Game.low_quality()
 	region = Regions.get_region(region_id)
 	tier = Game.tier_for(region_id)
+	hero_id = Game.hero()
+	var arg_hero := _arg(OS.get_cmdline_user_args(), "--hero=")
+	if HeroDefs.DATA.has(arg_hero):
+		hero_id = arg_hero
+	hero = HeroDefs.get_hero(hero_id)
 	duration = Regions.duration_for_tier(tier)
 	var args := OS.get_cmdline_user_args()
 	for a in args:
@@ -195,8 +203,9 @@ func dust_at(pos: Vector2) -> void:
 
 func _bake() -> void:
 	var jobs := []
-	jobs.append({"key": "hero:0", "size": HeroArt.SIZE, "fn": HeroArt.draw, "t": 0.0})
-	jobs.append({"key": "hero:1", "size": HeroArt.SIZE, "fn": HeroArt.draw, "t": 1.0})
+	var hid := hero_id
+	for t in 2:
+		jobs.append({"key": "hero:%s:%d" % [hid, t], "size": HeroArt.size_of(hid), "fn": func(ci, tt): HeroArt.draw(ci, tt, hid), "t": float(t)})
 	jobs.append({"key": "shadow", "size": Vector2(44, 20), "fn": func(ci, _t): Art.safe_poly(ci, Art.ellipse(Vector2.ZERO, 20, 8, 24), Color(0, 0, 0, 0.3))})
 	var glow_fn := func(ci: CanvasItem, _t: float) -> void:
 		for k in 6:
@@ -255,12 +264,16 @@ func _start() -> void:
 	player.init(self)
 	apply_quality()
 	Game.setting_changed.connect(_on_setting)
-	rerolls = 2 + int(Game.meta_value("m_reroll"))
+	rerolls = 2 + int(Game.meta_value("m_reroll")) + int(HeroDefs.mod(hero_id, "rerolls", 0))
 	revive_left = int(Game.meta_value("m_revive"))
 	recalc_stats()
 	player.hp = player.max_hp
 	xp_need = need_for(level)
-	weapons.add_weapon("mec")
+	weapons.add_weapon(str(hero.start))
+	for k in int(hero.get("start_level", 1)) - 1:
+		weapons.level_weapon(str(hero.start))
+	if hero.has("start2"):
+		weapons.add_weapon(str(hero.start2))
 	camera.position = player.position
 	hud = Hud.new()
 	hud.b = self
@@ -339,6 +352,14 @@ func _dev_tests() -> void:
 		gold_run = 100
 		await get_tree().create_timer(1.0, false).timeout
 		events.spawn(_arg(args, "--test-event="), player.position + Vector2(0, 40))
+	elif "--test-ult" in args:
+		player.invuln = 1.0e9
+		await get_tree().create_timer(1.0, false).timeout
+		for k in 24:
+			enemies.spawn(region.enemies[k % region.enemies.size()], player.position + Vector2.from_angle(TAU * k / 24.0) * 260.0, {"force": true})
+		await get_tree().create_timer(1.2, false).timeout
+		ult = 1.0
+		use_ult()
 	elif "--test-miniboss" in args:
 		await get_tree().create_timer(1.5, false).timeout
 		spawn_chief()
@@ -566,7 +587,13 @@ func recalc_stats() -> void:
 		"tag_led": pv.call("tag_led"),
 		"tag_blesk": pv.call("tag_blesk"),
 		"tag_jed": pv.call("tag_jed"),
+		"knock": 1.0,
 	}
+	# vlastnosti hrdiny (M8)
+	stats.max_hp *= 1.0 + float(HeroDefs.mod(hero_id, "hp"))
+	stats.speed *= 1.0 + float(HeroDefs.mod(hero_id, "speed"))
+	stats.xp *= 1.0 + float(HeroDefs.mod(hero_id, "xp"))
+	stats.knock += float(HeroDefs.mod(hero_id, "knock"))
 	# požehnání z božích muk
 	if buffs.has("sila"):
 		stats.dmg *= 1.3
@@ -628,7 +655,7 @@ func damage_enemy(e: Enemy, amount: float, tags: Array, dir: Vector2 = Vector2.Z
 		kick_t = time_total
 		kick = (dir if dir != Vector2.ZERO else Vector2.from_angle(randf() * TAU)) * 5.0
 	if knock > 0.0 and not e.is_boss:
-		e.knock += dir * knock * (1.0 - e.knock_res)
+		e.knock += dir * knock * float(stats.get("knock", 1.0)) * (1.0 - e.knock_res)
 	var col := Color("ffe14a") if crit else (Color("cfefff") if quiet else Color.WHITE)
 	if not low_quality or crit or e.is_boss or e.elite:
 		fx.number(e.position + Vector2(0, -e.r - 6), dmg, crit, col)
@@ -1090,6 +1117,23 @@ func use_ult() -> void:
 	if ult < 1.0 or (state != State.PLAY and state != State.BOSS):
 		return
 	ult = 0.0
+	match str(hero.ult):
+		"kanci_uder":
+			_ult_stomp()
+		"vestba":
+			_ult_freeze()
+		"skok":
+			_ult_leap()
+		_:
+			_ult_hrom()
+
+
+func ult_dmg() -> float:
+	return 45.0 + level * 6.0
+
+
+## Čech: blesky zasáhnou všechny nepřátele na obrazovce.
+func _ult_hrom() -> void:
 	Sfx.play("ult")
 	shake(16.0)
 	hud.flash_screen()
@@ -1104,6 +1148,69 @@ func use_ult() -> void:
 	if boss and boss.alive and boss.intro_t <= 0.0:
 		fx.lightning([boss.position + Vector2(0, -650), boss.position], true)
 		damage_enemy(boss, dmg * 3.0, ["blesk"], Vector2.ZERO, 0.0, false)
+
+
+## Bivoj: kančí úder – dupnutí, rázová vlna odhodí a na 2 s omráčí vše kolem.
+func _ult_stomp() -> void:
+	var pp := player.position
+	Sfx.play("boom")
+	shake(20.0)
+	Game.vibrate(120)
+	fx.explosion(pp + Vector2(0, 20), 160.0, Color("c9a06a"))
+	ground_fx.shockwave(pp, 900.0, 460.0, 34.0, Color("c9a06a"))
+	ground_fx.shockwave(pp, 600.0, 300.0, 20.0, Color(1, 0.9, 0.6))
+	var dmg := ult_dmg() * 0.9
+	for e in enemies.query(pp, 450.0):
+		var dir: Vector2 = (e.position - pp).normalized()
+		damage_enemy(e, dmg * (2.5 if e.is_boss else 1.0), ["fyz"], dir, 650.0, false)
+		if e.alive and not e.is_boss:
+			e.state = Enemy.St.REST
+			e.timer = 2.0
+
+
+## Libuše: věštba – nepřátelé na obrazovce na 4 s zamrznou, nepřátelské střely zmizí.
+func _ult_freeze() -> void:
+	Sfx.play("ult")
+	shake(8.0)
+	hud.flash_screen(Color(0.75, 0.9, 1.0))
+	projectiles.clear_hostile()
+	var dmg := ult_dmg() * 0.5
+	var targets := enemies.visible()
+	var n := 0
+	for e in targets:
+		damage_enemy(e, dmg * (2.0 if e.is_boss else 1.0), ["led"], Vector2.ZERO, 0.0, false)
+		if not e.alive:
+			continue
+		e.slow_t = 4.0
+		e.slow_f = 0.6 if e.is_boss else 1.0
+		if not e.is_boss:
+			e.state = Enemy.St.REST
+			e.timer = 4.0
+		if n < 24:
+			fx.burst(e.position, Color("bfe8ff"), 4, 120.0, 5.0)
+			n += 1
+	if boss and boss.alive and boss.intro_t <= 0.0:
+		damage_enemy(boss, dmg * 2.0, ["led"], Vector2.ZERO, 0.0, false)
+		boss.slow_t = 4.0
+		boss.slow_f = 0.6
+
+
+## Horymír: Šemíkův skok ve směru pohybu, dopad otřese zemí (dopadne v leap_land).
+func _ult_leap() -> void:
+	Sfx.play("dash")
+	var dir: Vector2 = player.move_dir if player.move_dir.length() > 0.1 else player.face_dir
+	player.leap(dir.normalized() * 400.0)
+
+
+func leap_land(pos: Vector2) -> void:
+	Sfx.play("boom")
+	shake(16.0)
+	Game.vibrate(100)
+	fx.explosion(pos + Vector2(0, 20), 150.0, Color("e9eef3"))
+	ground_fx.shockwave(pos, 800.0, 280.0, 26.0, Color(1, 1, 1))
+	var dmg := ult_dmg() * 1.3
+	for e in enemies.query(pos, 220.0):
+		damage_enemy(e, dmg * (2.5 if e.is_boss else 1.0), ["fyz"], (e.position - pos).normalized(), 500.0, false)
 
 
 # ---------------------------------------------------------------- náčelník
@@ -1249,6 +1356,7 @@ func win() -> void:
 	var reward := 40 + tier * 10 + stars * 15
 	var total := int((gold_run + reward) * (1.0 + Game.meta_value("m_gold")))
 	var first := Game.conquer(region_id, stars)
+	var new_heroes := Game.check_hero_unlocks()
 	Game.add_gold(total)
 	Game.add_stat("kills", kills)
 	Game.add_stat("runs", 1)
@@ -1257,7 +1365,7 @@ func win() -> void:
 	Sfx.play("win")
 	overlay.show_win(stars, total, first)
 	if autoplay:
-		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d zastavení=%d" % [stars, total, time_total, boss_time, level, kills, stops])
+		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d zastavení=%d hrdina=%s%s" % [stars, total, time_total, boss_time, level, kills, stops, hero_id, (" odemčen " + ",".join(new_heroes)) if not new_heroes.is_empty() else ""])
 		if "--quit-at-end" in OS.get_cmdline_user_args():
 			get_tree().quit()
 		_soak_leave()
@@ -1279,7 +1387,7 @@ func lose() -> void:
 	player.body.modulate = Color(0.5, 0.5, 0.5)
 	overlay.show_lose(total)
 	if autoplay:
-		print("PROHRA: čas=%.0f lvl=%d zabito=%d boss=%s zastavení=%d" % [time_total, level, kills, ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-", stops])
+		print("PROHRA: čas=%.0f lvl=%d zabito=%d boss=%s zastavení=%d hrdina=%s" % [time_total, level, kills, ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-", stops, hero_id])
 		if "--quit-at-end" in OS.get_cmdline_user_args():
 			get_tree().quit()
 		_soak_leave()

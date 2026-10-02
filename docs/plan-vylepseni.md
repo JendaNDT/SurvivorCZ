@@ -15,7 +15,7 @@ Plán pokrývá všechny navržené vylepšení: nástrahy a minibosse v krajíc
 | M5 | Věděl jsi? a Kniha | fakta o krajích, bestiář, odznaky | 1 session |
 | M6 | Hudba podle oblasti | dechovka, cimbál, hory, hutě, Praha | 1 session |
 | M7 ✅ | Události v boji | oltář, boží muka, obelisk, kramář, zamčená truhla | hotovo (verze 1.5.0) |
-| M8 | Hrdinové | Bivoj, kněžna Libuše, Horymír se Šemíkem | 2 sessions |
+| M8 ✅ | Hrdinové | Bivoj, kněžna Libuše, Horymír se Šemíkem | hotovo (verze 1.6.0) |
 | M9 | Po dohrání | úrovně žáru, nekonečný režim, denní výzva | 2 sessions |
 | M10 | Google Play | vlastní klíč, AAB, stránka v obchodě | 1 session + tvoje kroky |
 
@@ -383,6 +383,13 @@ Malý štítek v HUD pod ukazateli: FPS a počet nepřátel. Zapíná se v nasta
 ## M8 Hrdinové
 
 **Cíl:** různé začátky a styly hry. Hrdinové jsou z českých pověstí (podle Starých pověstí českých, podrobnosti je dobré ověřit).
+
+**Stav: hotovo ve verzi 1.6.0.** Proti plánu (kvůli vyrovnanosti v simulacích na Zlínsku a Ostravsku, po 8 bitvách):
+- Libuše začíná s bleskem na úrovni 3 a navíc s mrazivou aurou, má +20 % zkušeností a −10 % životů (plán: jen blesk, +15 %, −15 %). Předtím vyhrála 2 z 8, teď 5 z 8.
+- Horymír začíná s kuší na úrovni 3 a s vrhací sekerou a má navíc +15 % životů. Předtím vyhrál 0 z 8, teď 4 z 8.
+- Čech vyhrál 5 z 8, Bivoj 7 z 8 (nechaný, je odměnou za tři bosse).
+- Ultimátka Horymíra je „Skok“ (Šemík skočí 400 px, dopad zraní okolí). Libušina věštba navíc smaže nepřátelské střely.
+- Odznaky z M5 zatím nejsou (M5 je odložený). Hrdinové se odemykají i ve starším uložení, kde už podmínku splnil (kontrola při otevření mapy).
 
 | Hrdina | Start | Vlastnosti | Ultimátka | Odemčení |
 | --- | --- | --- | --- | --- |

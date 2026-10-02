@@ -21,6 +21,10 @@ var data: Dictionary = {}
 var pending_region: String = ""
 ## Kraje, které se právě odemkly (mapa je zvýrazní).
 var fresh_unlocks: Array = []
+## Hrdinové odemčení v poslední bitvě (mapa je ohlásí).
+var fresh_heroes: Array = []
+## Hrdina jen pro toto spuštění (--hero=…), uložení nemění.
+var hero_override := ""
 ## Průměrné FPS z první bitvy, když se hra sekala (mapa pak nabídne úspornou grafiku).
 var perf_offer := 0.0
 var _vib_until := 0
@@ -136,6 +140,7 @@ func default_data() -> Dictionary:
 		"stats": {"kills": 0, "runs": 0, "defeats": 0, "bosses": 0, "chiefs": 0},
 		"settings": DEFAULT_SETTINGS.duplicate(),
 		"perf_checked": false,
+		"heroes": {"selected": "cech", "unlocked": ["cech"], "seen": ["cech"]},
 	}
 
 
@@ -250,6 +255,77 @@ func conquer(id: String, star_count: int) -> bool:
 
 func all_conquered() -> bool:
 	return conquered_count() >= Regions.ORDER.size()
+
+
+# ---------------------------------------------------------------- hrdinové (M8)
+
+func hero() -> String:
+	if hero_override != "":
+		return hero_override
+	var h: String = data.heroes.get("selected", "cech")
+	return h if hero_unlocked(h) else "cech"
+
+
+func set_hero(id: String) -> void:
+	if not hero_unlocked(id):
+		return
+	data.heroes.selected = id
+	save_game()
+	changed.emit()
+
+
+## Kolik odemčených hrdinů hráč ještě neviděl na desce Hrdinové.
+func unseen_heroes() -> int:
+	var seen: Array = data.heroes.get("seen", ["cech"])
+	var n := 0
+	for id in data.heroes.unlocked:
+		if not seen.has(id):
+			n += 1
+	return n
+
+
+func mark_heroes_seen() -> void:
+	data.heroes["seen"] = (data.heroes.unlocked as Array).duplicate()
+	save_game()
+
+
+func hero_unlocked(id: String) -> bool:
+	return id == "cech" or (data.heroes.unlocked as Array).has(id)
+
+
+func total_stars() -> int:
+	var n := 0
+	for id in data.conquered.keys():
+		n += int(data.conquered[id])
+	return n
+
+
+## Postup k odemčení: [mám, potřebuji].
+func hero_progress(id: String) -> Array:
+	var u: Dictionary = HeroDefs.get_hero(id).unlock
+	if u.has("bosses"):
+		return [mini(int(data.stats.get("bosses", 0)), int(u.bosses)), int(u.bosses)]
+	if u.has("region"):
+		return [1 if is_conquered(u.region) else 0, 1]
+	if u.has("stars"):
+		return [mini(total_stars(), int(u.stars)), int(u.stars)]
+	return [1, 1]
+
+
+## Po bitvě: odemkne hrdiny, kteří splnili podmínku, a vrátí je.
+func check_hero_unlocks() -> Array:
+	var out := []
+	for id in HeroDefs.ORDER:
+		if hero_unlocked(id):
+			continue
+		var p := hero_progress(id)
+		if int(p[0]) >= int(p[1]):
+			(data.heroes.unlocked as Array).append(id)
+			out.append(id)
+	if not out.is_empty():
+		fresh_heroes.append_array(out)
+		save_game()
+	return out
 
 
 # ---------------------------------------------------------------- zlato a vylepšení

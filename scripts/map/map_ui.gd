@@ -19,6 +19,7 @@ class TopBar extends Control:
 	var m: MapScreen
 	var shop_bt: CCButton
 	var gear_bt: CCButton
+	var hero_bt: CCButton
 
 	func _ready() -> void:
 		set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -36,6 +37,11 @@ class TopBar extends Control:
 		gear_bt.radius = 32.0
 		gear_bt.pressed.connect(func(): m.show_settings())
 		add_child(gear_bt)
+		hero_bt = CCButton.make("", Color("b25cff"), Vector2(64, 64), 24)
+		hero_bt.radius = 32.0
+		hero_bt.icon_scale = 0.62
+		hero_bt.pressed.connect(func(): m.show_heroes())
+		add_child(hero_bt)
 		resized.connect(_place)
 		Game.changed.connect(queue_redraw)
 		_place()
@@ -43,6 +49,7 @@ class TopBar extends Control:
 	func _place() -> void:
 		gear_bt.position = Vector2(size.x - 80, 12)
 		shop_bt.position = Vector2(size.x - 296, 12)
+		hero_bt.position = Vector2(342, 12)
 		_update_badge()
 
 	func _update_badge() -> void:
@@ -52,6 +59,9 @@ class TopBar extends Control:
 				can += 1
 		shop_bt.badge = str(can) if can > 0 else ""
 		shop_bt.queue_redraw()
+		hero_bt.icon_key = "icon:hero_" + Game.hero()
+		hero_bt.badge = "!" if Game.unseen_heroes() > 0 else ""
+		hero_bt.queue_redraw()
 
 	func _draw() -> void:
 		_update_badge()
@@ -136,6 +146,15 @@ class RegionCard extends Control:
 				Art.icon_star(self, c, 11, i < n)
 		elif st == "locked":
 			draw_string(Art.font, Vector2(tx, yy + 50), "Nejdřív dobyj některý sousední kraj.", HORIZONTAL_ALIGNMENT_LEFT, tw, 17, Color("a03a2a"))
+		# hrdina, který půjde do boje (tlačítko „Změnit“ přidává MapScreen)
+		if st != "locked":
+			var hc := Vector2(50, size.y - 40)
+			Art.circle(self, hc, 30, Color("b25cff"), 3.0)
+			draw_circle(hc, 26, Color("e8d4ff"))
+			var hk := "icon:hero_" + Game.hero()
+			if Baker.has(hk):
+				draw_texture_rect(Baker.tex(hk), Rect2(hc - Vector2(30, 32), Vector2(60, 60)), false)
+			draw_string(Art.font, Vector2(88, size.y - 70), HeroDefs.get_hero(Game.hero()).name, HORIZONTAL_ALIGNMENT_LEFT, 120, 15, ink)
 
 
 ## Zbrojnice – trvalá vylepšení za zlato.
@@ -215,6 +234,90 @@ class ShopBoard extends Control:
 			draw_multiline_string(Art.font, Vector2(r.position.x + 12, r.position.y + 96), def.desc, HORIZONTAL_ALIGNMENT_CENTER, cw - 24, 15, 2, Color("6b4a2a"))
 
 
+## Deska „Hrdinové“: čtyři karty s portrétem, vlastnostmi a ultimátkou.
+## Zamčení hrdinové ukazují podmínku a postup. Tlačítka se jen přepisují.
+class HeroBoard extends Control:
+	var m: MapScreen
+	var buttons := {}
+
+	func build() -> void:
+		var ids: Array = HeroDefs.ORDER
+		var cw := (size.x - 60.0 - 3 * 14.0) / 4.0
+		for i in ids.size():
+			var id: String = ids[i]
+			var x := 30.0 + i * (cw + 14.0)
+			var bt: CCButton = buttons.get(id)
+			if bt == null:
+				bt = CCButton.make("", Art.BTN_GREEN, Vector2(cw - 30, 56), 24)
+				bt.position = Vector2(x + 15, size.y - 82)
+				bt.pressed.connect(_pick.bind(id))
+				add_child(bt)
+				buttons[id] = bt
+			var unlocked := Game.hero_unlocked(id)
+			var selected := Game.hero() == id
+			bt.caption = "Vybráno" if selected else ("Vybrat" if unlocked else "Zamčeno")
+			bt.color = Art.BTN_YELLOW if selected else (Art.BTN_GREEN if unlocked else Art.BTN_GREY)
+			bt.icon_key = "" if unlocked else "ui:lock"
+			bt.icon_scale = 0.4
+			bt.disabled = not unlocked or selected
+			bt.queue_redraw()
+		queue_redraw()
+
+	func _pick(id: String) -> void:
+		Game.note("hrdina " + id)
+		Game.set_hero(id)
+		Sfx.play("levelup", -6.0)
+		build.call_deferred()
+		m.topbar.queue_redraw()
+
+	func _draw() -> void:
+		Art.panel(self, Rect2(Vector2.ZERO, size))
+		Art.ribbon(self, Vector2(size.x * 0.5, 4), 330, 58, Color("b25cff"), "HRDINOVÉ", 34)
+		var ids: Array = HeroDefs.ORDER
+		var cw := (size.x - 60.0 - 3 * 14.0) / 4.0
+		var ink := Color("4a2c12")
+		for i in ids.size():
+			var id: String = ids[i]
+			var h: Dictionary = HeroDefs.get_hero(id)
+			var unlocked := Game.hero_unlocked(id)
+			var selected := Game.hero() == id
+			var r := Rect2(Vector2(30 + i * (cw + 14.0), 74), Vector2(cw, size.y - 168))
+			Art.safe_poly(self, Art.rrect(Rect2(r.position + Vector2(0, 4), r.size), 14), Color(0, 0, 0, 0.18))
+			if selected:
+				Art.safe_poly(self, Art.rrect(r.grow(5), 18), Art.GOLD)
+			Art.flat(self, Art.rrect(r, 14), Color("fff3d6") if not selected else Color("fff6d0"), 2.5)
+			# portrét
+			var pc := Vector2(r.get_center().x, r.position.y + 78)
+			Art.circle(self, pc, 64, Color("3a7bd5") if unlocked else Color("7d858c"), 3.5)
+			draw_circle(pc, 58, Color("9fd6ff") if unlocked else Color("b9c2cc"))
+			var key := "hero:%s:0" % id
+			if Baker.has(key):
+				var tex := Baker.tex(key)
+				var ts := tex.get_size()
+				var k := 128.0 / maxf(ts.x, ts.y) * (0.95 if id == "horymir" else 1.0)
+				var sz := ts * k
+				var col := Color.WHITE if unlocked else Color(0.15, 0.15, 0.2, 0.85)
+				draw_texture_rect(tex, Rect2(pc - Vector2(sz.x * 0.5, sz.y * 0.55), sz), false, col)
+			# jméno a přídomek
+			Art.text(self, Vector2(pc.x, r.position.y + 172), str(h.name), 22, Color.WHITE, 6)
+			draw_multiline_string(Art.font, Vector2(r.position.x + 10, r.position.y + 194), str(h.title), HORIZONTAL_ALIGNMENT_CENTER, cw - 20, 13, 2, Color("7a5a3a"))
+			var y := r.position.y + 236.0
+			if unlocked:
+				for tr in h.traits:
+					draw_string(Art.font, Vector2(r.position.x + 14, y), "• " + str(tr), HORIZONTAL_ALIGNMENT_LEFT, cw - 24, 14, ink)
+					y += 19.0
+				y += 6.0
+				Art.text(self, Vector2(r.position.x + 14, y), str(h.ult_name), 15, Color("ffd23f"), 4, HORIZONTAL_ALIGNMENT_LEFT, cw - 24)
+				draw_multiline_string(Art.font, Vector2(r.position.x + 14, y + 18), str(h.ult_desc), HORIZONTAL_ALIGNMENT_LEFT, cw - 24, 13, 2, Color("6b4a2a"))
+			else:
+				Art.icon_lock(self, Vector2(pc.x, y + 4), 18)
+				draw_string(Art.font, Vector2(r.position.x + 10, y + 46), str(h.unlock_text), HORIZONTAL_ALIGNMENT_CENTER, cw - 20, 18, ink)
+				var pr := Game.hero_progress(id)
+				var bar := Rect2(r.position.x + 24, y + 62, cw - 48, 16)
+				Art.bar(self, bar, float(pr[0]) / float(pr[1]), Color("b25cff"))
+				Art.text(self, Vector2(bar.get_center().x, bar.end.y + 22), "%d / %d" % [int(pr[0]), int(pr[1])], 16, Color.WHITE, 5)
+
+
 ## Úvodní obrazovka s logem a návodem.
 class IntroBoard extends Control:
 	var m: MapScreen
@@ -231,8 +334,8 @@ class IntroBoard extends Control:
 		Art.text(self, Vector2(cx - 120, 92 + bob), "DOBYJ", 72, Color("ffd23f"), 16)
 		Art.text(self, Vector2(cx + 150, 92 - bob), "ČESKO!", 72, Color("ff5a48"), 16)
 		Art.text(self, Vector2(cx, 134), "Survivor strategie o 14 krajích", 22, Color("fff6c8"), 6)
-		if Baker.has("hero:0"):
-			var tex := Baker.tex("hero:0")
+		if Baker.has("hero:cech:0"):
+			var tex := Baker.tex("hero:cech:0")
 			var s := tex.get_size() / Baker.SCALE * 1.4
 			draw_texture_rect(tex, Rect2(Vector2(36, 170 + bob), s * 0.9), false)
 		var ink := Color("4a2c12")

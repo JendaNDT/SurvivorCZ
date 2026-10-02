@@ -127,14 +127,14 @@ func _draw() -> void:
 	# úskok
 	var dc := _dash_c()
 	var ready := b.player.can_dash()
-	_round_button(dc, 62.0, Color("3fb2ff") if ready else Color("7d858c"), "ui:boot", 1.0 - b.player.dash_cd / Player.DASH_CD)
+	_round_button(dc, 62.0, Color("3fb2ff") if ready else Color("7d858c"), "ui:boot", 1.0 - b.player.dash_cd / b.player.dash_cd_max)
 	Art.text(self, dc + Vector2(0, 86), "ÚSKOK", 18, Color.WHITE, 5)
 	# ultimátka
 	var uc := _ult_c()
 	var full := b.ult >= 1.0
 	var pulse := 1.0 + (0.08 * sin(b.time_total * 8.0) if full else 0.0)
 	_round_button(uc, 44.0 * pulse, Color("ffc928") if full else Color("8a7a5a"), "ui:bolt", b.ult)
-	Art.text(self, uc + Vector2(0, 64), "HROM", 16, Color.WHITE, 5)
+	Art.text(self, uc + Vector2(0, 64), str(b.hero.get("ult_name", "HROM")), 16, Color.WHITE, 5)
 	# pauza
 	var pc := _pause_c()
 	_round_button(pc, 30.0, Color("ffb030"), "ui:pause", 1.0)
