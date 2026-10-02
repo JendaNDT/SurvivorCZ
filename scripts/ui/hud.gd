@@ -38,7 +38,7 @@ func _process(delta: float) -> void:
 			i -= 1
 		flash_a = maxf(0.0, flash_a - delta * 2.5)
 	redraw_t -= delta
-	if redraw_t <= 0.0 or not banners.is_empty() or flash_a > 0.0 or _chief_screen_pos() != Vector2.INF:
+	if redraw_t <= 0.0 or not banners.is_empty() or flash_a > 0.0 or not _offscreen().is_empty():
 		redraw_t = 0.1
 		queue_redraw()
 
@@ -72,6 +72,13 @@ func _draw() -> void:
 	for id in b.weapons.passives.keys():
 		_slot(Vector2(x, top + 76), "icon:" + id, b.weapons.passives[id].level, false, 0.8)
 		x += 34.0
+	# --- požehnání z božích muk s odpočtem
+	x = 100.0
+	for id in b.buffs.keys():
+		var key: String = EventDefs.BLESSINGS[id].icon
+		_slot(Vector2(x, top + 118), key, 0, true)
+		Art.text(self, Vector2(x + 22, top + 126), "%d" % ceili(float(b.buffs[id])), 16, Color("fff2b0"), 4, HORIZONTAL_ALIGNMENT_LEFT, 40)
+		x += 64.0
 	# --- čas uprostřed
 	var cx := vs.x * 0.5
 	if b.state == Battle.State.BOSS or b.state == Battle.State.BOSS_INTRO or b.boss != null:
@@ -91,9 +98,9 @@ func _draw() -> void:
 		var ft := "FPS %d · nepřátel %d" % [Engine.get_frames_per_second(), b.enemies.count()]
 		Art.text(self, Vector2(rx - 150, top + 102), ft, 16, Color("bfffa8"), 5, HORIZONTAL_ALIGNMENT_LEFT, 260)
 	# --- šipka k náčelníkovi, který je mimo obrazovku
-	var cp := _chief_screen_pos()
-	if cp != Vector2.INF and not get_tree().paused:
-		_chief_arrow(cp, vs)
+	if not get_tree().paused:
+		for tg in _offscreen():
+			_arrow(tg[0], vs, tg[1])
 	# --- oznámení
 	var active := b.state == Battle.State.PLAY or b.state == Battle.State.BOSS or b.state == Battle.State.BOSS_INTRO
 	if active:
@@ -109,17 +116,27 @@ func _draw() -> void:
 			draw_rect(Rect2(Vector2(0, vs.y - 10 - k * 8), Vector2(vs.x, 10 + k * 8)), Color(0.9, 0, 0, a * 0.25))
 
 
-## Poloha náčelníka na obrazovce, když je mimo ni (jinak Vector2.INF).
-func _chief_screen_pos() -> Vector2:
-	if b == null or b.chief == null or not b.chief.alive or b.chief.intro_t > 0.0:
-		return Vector2.INF
-	var p: Vector2 = b.chief.get_global_transform_with_canvas().origin
-	if Rect2(Vector2.ZERO, size).grow(-20.0).has_point(p):
-		return Vector2.INF
-	return p
+## Cíle mimo obrazovku, na které ukazuje šipka: [poloha na obrazovce, ikona]
+## (náčelník = "crown", události = upečená kresba "ev:<id>").
+func _offscreen() -> Array:
+	var out := []
+	if b == null or b.player == null:
+		return out
+	var view := Rect2(Vector2.ZERO, size).grow(-20.0)
+	var xf: Transform2D = b.world.get_global_transform_with_canvas()
+	if b.chief != null and b.chief.alive and b.chief.intro_t <= 0.0:
+		var p: Vector2 = xf * b.chief.position
+		if not view.has_point(p):
+			out.append([p, "crown"])
+	if b.events:
+		for ev in b.events.list:
+			var p2: Vector2 = xf * (ev.pos as Vector2)
+			if not view.has_point(p2):
+				out.append([p2, "ev:" + str(ev.id)])
+	return out
 
 
-func _chief_arrow(p: Vector2, vs: Vector2) -> void:
+func _arrow(p: Vector2, vs: Vector2, icon: String) -> void:
 	# šipka jezdí po okraji obrazovky, nahoře pod horní lištou
 	var inner := Rect2(Vector2(70, 140), vs - Vector2(140, 210))
 	var c := inner.get_center()
@@ -129,9 +146,19 @@ func _chief_arrow(p: Vector2, vs: Vector2) -> void:
 	var at := c + dir * minf(kx, ky)
 	var pulse := 1.0 + 0.08 * sin(b.time_total * 8.0)
 	var tri := Art.xform(Art.poly([26, 0, -8, -18, -2, 0, -8, 18]), at + dir * 14.0, Vector2(pulse, pulse), dir.angle())
-	Art.shape(self, tri, Color("ffb310"), 3.0, 0.5)
-	Art.circle(self, at - dir * 14.0, 20.0, Color("6b3a17"), 3.0)
-	Art.icon_crown(self, at - dir * 14.0 + Vector2(0, 2), 12.0)
+	var ic := at - dir * 14.0
+	if icon == "crown":
+		Art.shape(self, tri, Color("ffb310"), 3.0, 0.5)
+		Art.circle(self, ic, 20.0, Color("6b3a17"), 3.0)
+		Art.icon_crown(self, ic + Vector2(0, 2), 12.0)
+	else:
+		Art.shape(self, tri, Color("6fd0ff"), 3.0, 0.5)
+		Art.circle(self, ic, 24.0, Color("f6e7c4"), 3.0)
+		if Baker.has(icon):
+			var tex := Baker.tex(icon)
+			var ts := tex.get_size()
+			var k := 40.0 / maxf(ts.x, ts.y)
+			draw_texture_rect(tex, Rect2(ic - ts * k * 0.5, ts * k), false)
 
 
 func ci_level_badge(c: Vector2, lv: int) -> void:

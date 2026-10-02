@@ -6,10 +6,10 @@ Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dob�
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Zahrát si verzi 1.4.0 a napsat, jak působí nástup a smrt bosse a krátká zastavení při zásahu. Pak milník M5 (Věděl jsi? a Kniha).**
+**Milníky M7–M9 (události, hrdinové, hra po dohrání), M5 a M6 jsou zatím odložené.** Po M7 přijde M8 (hrdinové) a M9 (žár, nekonečný režim, denní výzva).
 Hlavně: jestli zastavení při kritickém zabití (nejvýš jednou za sekundu) nepůsobí jako zasekávání, jestli je vidět prach pod nohama a jestli výhra po smrti bosse (asi 2,5 s) nepřichází moc pozdě. Pořád platí otázka z 1.3.0: jak silní jsou náčelníci. Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
 
-Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. S náčelníky (M3) vyhrál 23 z 28 bitev (každý kraj dvakrát), náčelník padl za 10–54 s. Ve verzi 1.4.0 vyhrál 24 z 28 (prohry jen Olomoucko a Zlínsko), krátkých zastavení bylo 28–98 za bitvu. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`, náčelníci v `scripts/data/enemies.gd` (`MINIBOSSES`) a `scripts/battle/mini_boss.gd`.
+Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. S náčelníky (M3) vyhrál 23 z 28 bitev (každý kraj dvakrát), náčelník padl za 10–54 s. Ve verzi 1.4.0 vyhrál 24 z 28 (prohry jen Olomoucko a Zlínsko), krátkých zastavení bylo 28–98 za bitvu. S událostmi (1.5.0) taky 24 z 28. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`, náčelníci v `scripts/data/enemies.gd` (`MINIBOSSES`) a `scripts/battle/mini_boss.gd`.
 
 ## ✅ Hotovo
 - Mapa Česka se 14 kraji (skutečné hranice), odemykání sousedů, hvězdy, mlha nad zamčenými kraji, řeky, hory, hrady s vlajkou
@@ -30,6 +30,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
   - vibrace při zásahu, dopadu bossova útoku, hromu, nové úrovni, truhle a smrti bosse
   - uložení verze 2: starý postup se načte (ověřeno), vypnutý zvuk se převede na nulovou hlasitost, smazání postupu nastavení nechá
   - vývojářské parametry `--bench`, `--taps`, `--quality`, `--show-fps`, `--left-handed`, `--test-settings`, `--screen=settings|perf`
+- **M7 Události v boji (verze 1.5.0):** ve 30 % a 65 % času se kousek od hrdiny objeví oltář (oběť životů nebo zlata za legendární či epickou kartu), boží muka (5 s v kruhu = požehnání na minutu), prokletý obelisk (kletba: 3 elity a vlna, za ně legendární truhla), kramář s vozíkem (svíčková, přehození, vzácná karta, magnet za zlato z kraje) nebo zamčená truhla (otevře se po 40 zabitích kolem). Šipka u okraje obrazovky, po 40 s nevšímání zmizí, požehnání s odpočtem v HUD. Galerie strana 9, test `--test-event=ID`
 - **M4 Pocit z boje (verze 1.4.0):** nástup bosse jako v Clash of Clans (hrdina na modré stuze, boss na červené, „VS“ s otřesem, jméno a přídomek), krátké zastavení hry při zabití elity, kritickém zabití, změně fáze bosse, silném zásahu hrdiny a smrti náčelníka, smrt bosse (otřes, záblesky, náklon a propad, mince a konfety) a 14 vlastních teček bossů, prach pod nohama podle země (na plechu jiskry), smáčknutí nepřítele při zásahu, cuknutí kamery při kritu, stoupající tón sbírání elixíru. Testy `--test-bossintro`, `--test-bossdeath[=ID]` a kontrola `scripts/dev/hitstop_check.gd`
 - **M3 Náčelníci (verze 1.3.0):** v polovině každého kraje seskočí náčelník: hlavní nepřítel kraje ve dvojnásobné velikosti, se zlatou korunou, září, jménem a ukazatelem životů nad hlavou. Má dva útoky bosse (14 různých kombinací, např. dvojitý výpad žokeje, rázová vlna Golema). Když je mimo obrazovku, ukazuje na něj zlatá šipka. Po porážce padne větší truhla náčelníka: evoluce, když je k dispozici, jinak aspoň jedna epická karta. Když hrdina náčelníka nestihne porazit do příchodu bosse, náčelník uteče. Nástrahy mu ubližují, pásy a vítr ho unášejí. Galerie strana 8, testy `--test-miniboss` a `--test-chief-chest[=evo]`
 - **M2 Nástrahy krajů (verze 1.2.0):** 14 mechanik (gejzíry, sudy, pásy, mlha, vánice, dostih, katapult, tramvaj, rybníky, spory, vítr, kombajn, švestky, praskliny), stuha s nápovědou při prvním výskytu, nové kresby (galerie strana 7) a 10 zvuků, automat se vyhýbá pruhům a nebezpečným místům
@@ -52,9 +53,9 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - ~~M2 Nástrahy krajů~~ hotovo
 - ~~M3 Minibossové~~ hotovo
 - ~~M4 Pocit z boje~~ hotovo
+- ~~M7 Události v boji~~ hotovo
 - M5 Věděl jsi? a Kniha: fakta o krajích se zdroji, bestiář, odznaky
 - M6 Hudba podle oblasti: dechovka, cimbál, hory, hutě, Praha
-- M7 Události v boji: oltář, boží muka, obelisk, kramář, zamčená truhla
 - M8 Hrdinové: Bivoj, kněžna Libuše, Horymír se Šemíkem
 - M9 Po dohrání: úrovně žáru, nekonečný režim, denní výzva
 - M10 Google Play: vlastní klíč, AAB, stránka v obchodě

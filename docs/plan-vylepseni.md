@@ -14,7 +14,7 @@ Plán pokrývá všechny navržené vylepšení: nástrahy a minibosse v krajíc
 | M4 ✅ | Pocit z boje | nástup bosse, krátké zastavení při zásahu, prach, smrti bossů | hotovo (verze 1.4.0) |
 | M5 | Věděl jsi? a Kniha | fakta o krajích, bestiář, odznaky | 1 session |
 | M6 | Hudba podle oblasti | dechovka, cimbál, hory, hutě, Praha | 1 session |
-| M7 | Události v boji | oltář, boží muka, obelisk, kramář, zamčená truhla | 1–2 sessions |
+| M7 ✅ | Události v boji | oltář, boží muka, obelisk, kramář, zamčená truhla | hotovo (verze 1.5.0) |
 | M8 | Hrdinové | Bivoj, kněžna Libuše, Horymír se Šemíkem | 2 sessions |
 | M9 | Po dohrání | úrovně žáru, nekonečný režim, denní výzva | 2 sessions |
 | M10 | Google Play | vlastní klíč, AAB, stránka v obchodě | 1 session + tvoje kroky |
@@ -352,6 +352,13 @@ Malý štítek v HUD pod ukazateli: FPS a počet nepřátel. Zapíná se v nasta
 
 **Cíl:** uprostřed boje přibydou rozhodnutí s rizikem a odměnou.
 
+**Stav: hotovo ve verzi 1.5.0.** Proti plánu:
+- Elity z kletby obelisku nedávají vlastní truhly, odměnou je jen legendární truhla za všechny tři. Když přijde boss dřív, než je hrdina porazí, kletba propadne (elity utečou).
+- Boží muka: postup v kruhu mimo kruh pomalu klesá (o 15 % za sekundu), nespadne hned na nulu.
+- Oltář a kramář se otevřou při vstupu do kruhu. Po „Odejít“ oltář zůstane (otevře se při dalším vstupu), kramář odjede. U kramáře jde zboží koupit víckrát.
+- Událost se přestane odpočítávat (40 s), jakmile ji hrdina rozjede (muka, kletba, první zabití u truhly).
+- Šipky u okraje obrazovky ukazují na události i na náčelníka. Galerie má stranu 9 s událostmi.
+
 - Kdy: v 30 % a 65 % času jedna náhodná událost (dvakrát po sobě ne stejná), 500–700 px od hrdiny. U okraje obrazovky šipka s ikonou ukazuje směr. Když hráč událost 40 s ignoruje, zmizí.
 - Kód: `scripts/battle/events.gd` (`EventSystem`), data `scripts/data/events.gd`, kresby `scripts/art/event_art.gd`, dialogy přes `BattleOverlay` (stejné desky jako dnes).
 
@@ -486,9 +493,9 @@ Odemknou se po závěrečné oslavě. V horní liště mapy přibude volič s pl
 
 Než se pustíme do příslušného milníku, potřebuju od tebe odpovědi:
 
-- [ ] **Hrdinové (M8):** sedí Bivoj, kněžna Libuše a Horymír se Šemíkem, nebo chceš jiné postavy?
-- [ ] **Odemykání hrdinů (M8):** za úspěchy (jak je v plánu), nebo nákupem za zlato?
-- [ ] **Nekonečný režim (M9):** po každém bossovi, nebo až po dohrání celé hry?
+- [x] **Hrdinové (M8):** sedí Bivoj, kněžna Libuše a Horymír se Šemíkem, nebo chceš jiné postavy? **Ano, tihle tři.**
+- [x] **Odemykání hrdinů (M8):** za úspěchy (jak je v plánu), nebo nákupem za zlato? **Za úspěchy.**
+- [x] **Nekonečný režim (M9):** po každém bossovi, nebo až po dohrání celé hry? **Po každém bossovi.**
 - [ ] **Hudba (M6):** chceš nejdřív slyšet ukázky?
 - [ ] **Google Play (M10):** zdarma a bez reklam? Pod jakým jménem vývojáře?
 

@@ -29,6 +29,8 @@ Náčelník (`MiniBoss`, scripts/battle/mini_boss.gd) dědí z `Boss` a sdílí 
 
 Pocit z boje (M4): `Battle.hitstop(ms)` nastaví `Engine.time_scale = 0.05` a vrátí ho časovačem, který ignoruje měřítko a běží i v pauze. Pauza a výběr karet zastavení ruší (`_cancel_hitstop`), během zpomalení po smrti bosse (`Battle.slowmo`) se nespouští. Kontrola: `--test-bossdeath --dev-script=res://scripts/dev/hitstop_check.gd` (vypíše `HITSTOP OK`). Nástup bosse je `BossIntro` (scripts/ui/boss_intro.gd), smrt bosse uzel `BossDeath` (scripts/battle/boss_death.gd) s tečkou podle `BOSSES[id].death`. Prach pod nohama kreslí `GroundFx.puff()`, ten je ve světě nad stíny a pod postavami.
 
+Události v boji (M7): data `scripts/data/events.gd`, logika `EventSystem` (scripts/battle/events.gd, uzel ve světě nad `GroundFx`, kreslí kruhy a postup), kresby `scripts/art/event_art.gd` (klíče `ev:*`, uvolňují se v `Battle.leave()`). Dialog události zastaví hru přes `Battle.event_pause()` a zavře `event_resume()`; karty z události nabízí `offer_cards()` (zdroje `legend`, `legend_chest`, `epic`). Požehnání jsou v `Battle.buffs` a započítá je `recalc_stats()`. Tlačítka v dialogu volají akce přes `call_deferred`, kramář tlačítka jen přepisuje. Test: `--test-event=oltar|muka|obelisk|kramar|truhla`.
+
 ## Testování
 
 ```bash

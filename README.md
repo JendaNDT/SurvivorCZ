@@ -23,6 +23,12 @@ APK je podepsané „sideload“ klíčem z `android/sideload.keystore`, takže 
 - **Elixír** (růžové kapky) dává zkušenosti. Na každé nové úrovni vybíráš 1 ze 3 karet: novou zbraň, vyšší úroveň zbraně, nebo pasivní předmět. Karty můžeš **přehodit** (2× za kraj, víc se dá koupit) nebo **přeskočit** za trochu zlata a života.
 - **Elity** (nepřátelé se zlatou září) přicházejí ve 38 % a 70 % času a padá z nich **truhla** s lepší odměnou.
 - **Náčelník** přijde v polovině kraje. Je to hlavní nepřítel kraje ve dvojnásobné velikosti, se zlatou korunou, jménem a ukazatelem životů nad hlavou. Používá dva útoky bosse, které se předem ukážou na zemi. Když je mimo obrazovku, ukáže na něj zlatá šipka. Po porážce z něj padne **truhla náčelníka**: nabídne evoluci, když na ni má hrdina zbraň i předmět, jinak aspoň jednu epickou kartu. Kdo náčelníka nestihne porazit do příchodu bosse, tomu uteče.
+- **Události v boji** přijdou ve 30 % a 65 % času kousek od hrdiny (šipka u okraje obrazovky ukáže směr). Když je 40 s necháš být, zmizí:
+  - **Oltář:** obětuj 20 % životů za legendární kartu, nebo 50 zlata z kraje za epickou.
+  - **Boží muka:** postůj 5 s v kruhu a vyber si požehnání na minutu: +30 % poškození, +30 % rychlosti, dvojnásobný magnet, nebo 3 životy za sekundu.
+  - **Prokletý obelisk:** dotek spustí kletbu (3 elity a vlna). Kdo je porazí, dostane legendární truhlu.
+  - **Kramář s vozíkem:** svíčková, přehození karet, náhodná vzácná karta a magnet za zlato z kraje.
+  - **Zamčená truhla:** otevře se, když u ní padne 40 nepřátel.
 - **Svíčková** doplní třetinu života, **magnet** přitáhne všechen elixír.
 - Když časomíra doběhne, kolem hrdiny vyroste palisáda a přijde **boss**. Nejdřív se představí jako v Clash of Clans (hrdina proti bossovi, „VS“, jméno a přídomek), pak dopadne do arény. Má tři fáze a jeho útoky se předem ukážou červeně na zemi.
 - **Smrt bosse:** otřes, bílé záblesky, boss se nakloní a propadne, rozletí se mince a konfety. Každý boss má k tomu vlastní tečku: Vřídelní obr vystřelí poslední gejzír, Pivní králi vyteče pěna, rypadlu se odkutálí kolo, Krakonoš zmizí v mlze a zůstane po něm klobouk, orloji se roztočí ručičky a naposledy zazvoní zvon a tak dál.
@@ -168,6 +174,7 @@ godot --path . -- --screen=settings --taps="485,229>700,229@2"   # nastavení a 
 godot --path . -- --battle=KVK --left-handed --show-fps      # nastavení jen pro jedno spuštění
 godot --path . -- --battle=PHA --hazard-now                  # nástraha kraje hned a pak každé 3 s
 godot --path . -- --battle=VYS --test-miniboss               # náčelník hned po startu
+godot --path . -- --battle=KVK --test-event=oltar            # událost hned u hrdiny (oltar, muka, obelisk, kramar, truhla)
 godot --path . -- --battle=PHA --test-bossintro              # nástup bosse („VS“) hned po startu
 godot --path . -- --battle=KVK --test-bossdeath=orloj        # smrt libovolného bosse (bez =ID boss kraje)
 godot --path . -- --battle=PHA --test-bossdeath --dev-script=res://scripts/dev/hitstop_check.gd   # kontrola zastavení při zásahu
@@ -175,5 +182,5 @@ godot --path . -- --battle=KVK --test-chief-chest=evo        # truhla náčelní
 godot --path . --fixed-fps 30 -- --soak=20 --autoplay --duration=10   # zátěžový test: 20 bitev za sebou, vypisuje paměť
 godot --path . -- --screen=crash                             # ukázka hlášení o pádu
 godot --path . res://scenes/dev/gallery.tscn -- --page=7     # kresby nástrah
-godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy, 8 náčelníci)
+godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy, 8 náčelníci, 9 události)
 ```

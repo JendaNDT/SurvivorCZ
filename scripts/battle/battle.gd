@@ -60,6 +60,10 @@ var revive_left := 0
 var pending_levelups := 0
 var pending_chests := 0
 var pending_chief := 0
+var pending_legend := 0
+## Požehnání z božích muk: id -> zbývající sekundy (M7).
+var buffs := {}
+var events: EventSystem
 var arena_center := Vector2.ZERO
 var arena_radius := 0.0
 var shake_amt := 0.0
@@ -218,6 +222,7 @@ func _bake() -> void:
 	for id in region.decor + ["kul"]:
 		jobs.append({"key": "prop:" + id, "size": PropArt.size_of(id), "fn": func(ci, tt): PropArt.draw(ci, id, tt), "origin": PropArt.origin_of(id)})
 	jobs.append_array(HazardSystem.bake_jobs(region_id))
+	jobs.append_array(EventSystem.bake_jobs())
 	jobs.append_array(Main.icon_jobs())
 	await Baker.bake_many(jobs)
 
@@ -241,6 +246,10 @@ func _start() -> void:
 	hazards = HazardSystem.new()
 	add_child(hazards)
 	hazards.init(self)
+	events = EventSystem.new()
+	world.add_child(events)
+	world.move_child(events, ground_fx.get_index() + 1)
+	events.init(self)
 	player = Player.new()
 	entity_layer.add_child(player)
 	player.init(self)
@@ -326,6 +335,10 @@ func _dev_tests() -> void:
 			await get_tree().process_frame
 		await get_tree().create_timer(0.4, false).timeout
 		boss.hp = 0.0
+	elif _arg(args, "--test-event=") != "":
+		gold_run = 100
+		await get_tree().create_timer(1.0, false).timeout
+		events.spawn(_arg(args, "--test-event="), player.position + Vector2(0, 40))
 	elif "--test-miniboss" in args:
 		await get_tree().create_timer(1.5, false).timeout
 		spawn_chief()
@@ -337,7 +350,7 @@ func _dev_tests() -> void:
 				weapons.level_weapon("mec")
 			weapons.add_passive(Upgrades.WEAPONS["mec"].evo_with, 0)
 		await get_tree().create_timer(1.5, false).timeout
-		open_chest(true)
+		open_chest(2)
 
 
 ## Úsporná grafika: méně nepřátel naráz, bez stínů, méně částic a dekorací, jednodušší země.
@@ -397,9 +410,12 @@ func _process(delta: float) -> void:
 		pickups.update(delta)
 		director.update(delta)
 		hazards.update(delta)
+		if state == State.PLAY:
+			events.update(delta)
+		_update_buffs(delta)
 		if state == State.PLAY and elapsed >= duration:
 			start_boss()
-		if pending_levelups > 0 or pending_chests > 0 or pending_chief > 0:
+		if pending_levelups > 0 or pending_chests > 0 or pending_chief > 0 or pending_legend > 0:
 			_open_choice()
 	_update_camera(delta)
 	chunk_t -= delta
@@ -551,6 +567,15 @@ func recalc_stats() -> void:
 		"tag_blesk": pv.call("tag_blesk"),
 		"tag_jed": pv.call("tag_jed"),
 	}
+	# požehnání z božích muk
+	if buffs.has("sila"):
+		stats.dmg *= 1.3
+	if buffs.has("rychlost"):
+		stats.speed *= 1.3
+	if buffs.has("magnet"):
+		stats.magnet *= 2.0
+	if buffs.has("regen"):
+		stats.regen += 3.0
 	if player:
 		var old := player.max_hp
 		player.max_hp = stats.max_hp
@@ -657,13 +682,17 @@ func on_enemy_killed(e: Enemy, drops: bool) -> void:
 	ult = minf(1.0, ult + 1.0 / ULT_KILLS)
 	fx.poof(e.position)
 	Sfx.play("kill", -12.0, 0.15, 0.04)
+	if events:
+		events.on_kill(e)
 	if not drops:
 		return
 	pickups.drop_xp(e.position, e.xp)
 	var r := randf()
 	if e.elite:
 		hitstop(60)
-		pickups.drop("chest", e.position)
+		# elity z kletby obelisku nedávají vlastní truhlu (dostaneš legendární za všechny)
+		if not e.has_meta("curse"):
+			pickups.drop("chest", e.position)
 		for i in 6:
 			pickups.drop("coin", e.position, 1)
 		return
@@ -743,9 +772,12 @@ func add_xp(v: float) -> void:
 		pending_levelups += 1
 
 
-## Truhla z elity nabídne lepší karty, truhla náčelníka evoluci nebo aspoň epickou kartu.
-func open_chest(from_chief: bool = false) -> void:
-	if from_chief:
+## Truhla z elity (1) nabídne lepší karty, truhla náčelníka (2) evoluci nebo aspoň
+## epickou kartu, legendární truhla z obelisku (3) legendární předměty.
+func open_chest(kind: int = 1) -> void:
+	if kind >= 3:
+		pending_legend += 1
+	elif kind == 2:
 		pending_chief += 1
 	else:
 		pending_chests += 1
@@ -760,7 +792,13 @@ func _open_choice() -> void:
 	_cancel_hitstop()
 	get_tree().paused = true
 	var cards: Array
-	if pending_chief > 0:
+	if pending_legend > 0:
+		pending_legend -= 1
+		Sfx.play("chest")
+		Game.vibrate(60)
+		cards = gen_cards(3, 2)
+		overlay.show_choice(cards, "legend_chest")
+	elif pending_chief > 0:
 		pending_chief -= 1
 		Sfx.play("chest")
 		Game.vibrate(60)
@@ -779,14 +817,98 @@ func _open_choice() -> void:
 		cards = gen_cards(3, 0)
 		overlay.show_choice(cards, "level")
 	if autoplay:
-		await get_tree().create_timer(0.15, true).timeout
-		if state == State.LEVELUP:
-			var prio := {"evo": 5, "weapon_up": 4, "weapon_new": 3, "passive": 2}
-			var best: Dictionary = cards[0]
-			for c in cards:
-				if prio.get(c.type, 0) > prio.get(best.type, 0):
-					best = c
-			choose(best)
+		_auto_choose(cards)
+
+
+func _auto_choose(cards: Array) -> void:
+	await get_tree().create_timer(0.15, true).timeout
+	if state == State.LEVELUP:
+		var prio := {"evo": 5, "weapon_up": 4, "weapon_new": 3, "passive": 2}
+		var best: Dictionary = cards[0]
+		for c in cards:
+			if prio.get(c.type, 0) > prio.get(best.type, 0):
+				best = c
+		choose(best)
+
+
+# ---------------------------------------------------------------- události v boji (M7)
+
+## Zastaví hru pro dialog události. Vrací false, když to teď nejde.
+func event_pause() -> bool:
+	if state != State.PLAY and state != State.BOSS:
+		return false
+	resume_state = state
+	state = State.LEVELUP
+	_cancel_hitstop()
+	get_tree().paused = true
+	return true
+
+
+## Zavře dialog události (a otevře čekající výběr karet).
+func event_resume() -> void:
+	state = resume_state
+	if pending_levelups > 0 or pending_chests > 0 or pending_chief > 0 or pending_legend > 0:
+		_open_choice()
+		return
+	overlay.hide_all()
+	get_tree().paused = false
+
+
+## Výběr karet z události (hra už stojí, choose() ji pak pustí dál).
+func offer_cards(cards: Array, source: String) -> void:
+	overlay.show_choice(cards, source)
+	if autoplay:
+		_auto_choose(cards)
+
+
+## Požehnání: id z EventDefs.BLESSINGS na dur sekund.
+func add_buff(id: String, dur: float) -> void:
+	buffs[id] = dur
+	recalc_stats()
+
+
+func _update_buffs(delta: float) -> void:
+	if buffs.is_empty():
+		return
+	var gone := false
+	for id in buffs.keys():
+		buffs[id] = float(buffs[id]) - delta
+		if float(buffs[id]) <= 0.0:
+			buffs.erase(id)
+			gone = true
+	if gone:
+		recalc_stats()
+
+
+## Karty s nejnižší vzácností předmětů min_r (epická = 2).
+func gen_min_rarity(min_r: int) -> Array:
+	var cards := gen_cards(3, 1)
+	var any := false
+	for c in cards:
+		if c.type == "passive" and not Upgrades.PASSIVES[c.id].get("no_rarity", false):
+			c.rarity = maxi(int(c.rarity), min_r)
+			any = true
+	if not any:
+		var p := _epic_passive()
+		if not p.is_empty():
+			p.rarity = min_r
+			cards[cards.size() - 1] = p
+	return cards
+
+
+## Náhodné vylepšení (kramář): použije ho hned a vrátí jeho jméno.
+func random_card(min_r: int) -> String:
+	var p := _epic_passive()
+	if not p.is_empty():
+		p.rarity = min_r
+		apply_card(p)
+		return "%s (%s)" % [Upgrades.PASSIVES[p.id].name, Art.RARITY_NAMES[min_r]]
+	for c in gen_cards(3, 1):
+		if c.type == "weapon_up" or c.type == "weapon_new":
+			apply_card(c)
+			return Upgrades.WEAPONS[c.id].name
+	add_gold(20)
+	return "+20 zlata"
 
 
 func choose(card: Dictionary) -> void:
@@ -808,6 +930,10 @@ func reroll(source: String = "level") -> Array:
 	rerolls -= 1
 	if source == "chief":
 		return gen_chief_cards()
+	if source == "legend" or source == "legend_chest":
+		return gen_cards(3, 2)
+	if source == "epic":
+		return gen_min_rarity(2)
 	return gen_cards(3, 1 if source == "chest" else 0)
 
 
@@ -925,6 +1051,8 @@ func _evolved_from(id: String) -> bool:
 
 
 func _roll_rarity(luck: int) -> int:
+	if luck >= 2:
+		return 3
 	var r := randf()
 	if luck > 0:
 		r *= 0.55
@@ -1043,6 +1171,7 @@ func start_boss() -> void:
 		chief.vanish(0.8)
 		chief = null
 	pickups.pull_chests()
+	events.clear()
 	arena_center = player.position
 	arena_radius = ARENA_R
 	ground_fx.arena_center = arena_center
@@ -1186,7 +1315,7 @@ func leave(action: String) -> void:
 	Engine.time_scale = 1.0
 	# kresby nepřátel, bosse, dekorací a nástrah tohoto kraje se při dalším
 	# vstupu upečou znovu; ikony, hrdina a efekty zůstávají
-	Baker.purge(["e:", "b:", "prop:", "hz:"])
+	Baker.purge(["e:", "b:", "prop:", "hz:", "ev:"])
 	finished.emit(action)
 
 
@@ -1272,6 +1401,11 @@ func _autopilot() -> Vector2:
 		if dd < best and dd < 400.0:
 			best = dd
 			to_gem = (p.pos - pp).normalized()
+	var ev_t := events.autopilot_target() if events else Vector2.INF
+	if ev_t != Vector2.INF:
+		var de := ev_t - pp
+		if de.length() > 30.0:
+			push += de.normalized() * 1.4
 	if arena_radius > 0.0:
 		var c := arena_center - pp
 		if c.length() > arena_radius * 0.6:

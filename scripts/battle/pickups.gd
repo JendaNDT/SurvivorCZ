@@ -140,7 +140,7 @@ func _collect(p: Pick) -> void:
 			magnetize_all()
 			Sfx.play("chest", -4.0)
 		"chest":
-			b.open_chest(p.value >= 2)
+			b.open_chest(p.value)
 
 
 func clear() -> void:

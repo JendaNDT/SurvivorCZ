@@ -87,6 +87,12 @@ func show_choice(cards: Array, source: String) -> void:
 	_clear()
 	if source == "chief":
 		_title("TRUHLA NÁČELNÍKA!", Color("e8a010"), 8.0, "Poklad náčelníka – vyber si odměnu")
+	elif source == "legend":
+		_title("LEGENDÁRNÍ ODMĚNA!", Color("e8a010"), 8.0, "Oltář přijal oběť – vyber si odměnu")
+	elif source == "legend_chest":
+		_title("LEGENDÁRNÍ TRUHLA!", Color("e8a010"), 8.0, "Kletba je zlomená – vyber si odměnu")
+	elif source == "epic":
+		_title("EPICKÁ ODMĚNA!", Color("b25cff"), 8.0, "Oltář přijal zlato – vyber si odměnu")
 	elif source == "chest":
 		_title("TRUHLA!", Color("b25cff"), 8.0, "Poklad z elity – vyber si odměnu")
 	else:
@@ -134,6 +140,119 @@ func _cards(cards: Array) -> void:
 		c.pressed.connect(func(): b.choose(cd))
 		content.add_child(c)
 		_pop(c, 0.06 * i)
+
+
+# ---------------------------------------------------------------- události v boji (M7)
+
+## Deska události: nadpis na stuze, kresba události vlevo a text vedle ní.
+func _event_board(title: String, col: Color, sz: Vector2, icon: String, text_fn: Callable) -> Board:
+	var board := Board.new()
+	board.title = title
+	board.ribbon_col = col
+	board.size = sz
+	board.position = (size - sz) * 0.5
+	content.add_child(board)
+	_pop(board)
+	var info := Painter.new()
+	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info.size = Vector2(sz.x, 110)
+	info.position = Vector2(0, 56)
+	info.fn = func(ci: Control) -> void:
+		if Baker.has(icon):
+			var tex := Baker.tex(icon)
+			var ts := tex.get_size()
+			var k := 96.0 / maxf(ts.x, ts.y)
+			ci.draw_texture_rect(tex, Rect2(Vector2(40, 6), ts * k), false)
+		text_fn.call(ci)
+	board.add_child(info)
+	return board
+
+
+func _ev_text(ci: Control, lines: Array) -> void:
+	var y := 34.0
+	for i in lines.size():
+		var fs := 24 if i == 0 else 18
+		ci.draw_string(Art.font, Vector2(160, y), str(lines[i]), HORIZONTAL_ALIGNMENT_LEFT, ci.size.x - 190, fs, Color("4a2c12") if i == 0 else Color("6b4a2a"))
+		y += 30.0 if i == 0 else 24.0
+
+
+## Oltář: oběť životů za legendární kartu, nebo zlata za epickou.
+func show_altar(ev: Dictionary) -> void:
+	_clear()
+	var def: Dictionary = ev.def
+	var hp_cost: float = b.player.max_hp * float(def.hp_cost)
+	var gold_cost: int = def.gold_cost
+	var bw := 620.0
+	var board := _event_board("OLTÁŘ", Color("b25cff"), Vector2(bw, 440), "ev:oltar", func(ci: Control) -> void:
+		_ev_text(ci, ["Oltář žádá oběť.", "Za životy dá legendární kartu,", "za zlato z kraje epickou (máš %d)." % b.gold_run]))
+	var y := 176.0
+	var specs := [
+		["Obětovat životy", Color("e2382c"), "−%d životů · legendární karta" % int(hp_cost), b.player.hp <= hp_cost + 1.0, "hp"],
+		["Obětovat zlato", Art.BTN_YELLOW, "−%d zlata · epická karta" % gold_cost, b.gold_run < gold_cost, "gold"],
+		["Odejít", Art.BTN_GREY, "", false, "leave"],
+	]
+	for sp in specs:
+		var bt := CCButton.make(sp[0], sp[1], Vector2(440, 72 if sp[2] != "" else 60), 26)
+		bt.sub = sp[2]
+		bt.disabled = sp[3]
+		bt.position = Vector2((bw - 440) * 0.5, y)
+		var choice: String = sp[4]
+		bt.pressed.connect(func(): b.events.altar.call_deferred(ev, choice))
+		board.add_child(bt)
+		y += 86.0
+
+
+## Boží muka: jedno ze čtyř požehnání na minutu.
+func show_blessing(ev: Dictionary) -> void:
+	_clear()
+	var bw := 700.0
+	var board := _event_board("BOŽÍ MUKA", Color("e8a010"), Vector2(bw, 420), "ev:muka", func(ci: Control) -> void:
+		_ev_text(ci, ["Vytrvalost se vyplatila.", "Vyber si požehnání na %d sekund." % int(ev.def.dur)]))
+	var ids: Array = EventDefs.BLESSINGS.keys()
+	for i in ids.size():
+		var id: String = ids[i]
+		var bl: Dictionary = EventDefs.BLESSINGS[id]
+		var bt := CCButton.make(bl.name, Art.BTN_BLUE if i % 2 == 0 else Art.BTN_GREEN, Vector2(300, 84), 26)
+		bt.sub = bl.desc
+		bt.icon_key = bl.icon
+		bt.icon_scale = 0.4
+		bt.position = Vector2(bw * 0.5 - 310 + (i % 2) * 320, 176 + (i / 2) * 100)
+		bt.pressed.connect(func(): b.events.bless.call_deferred(ev, id))
+		board.add_child(bt)
+
+
+## Kramář: nákupy za zlato z kraje, tlačítka se jen přepisují (nemažou se).
+func show_peddler(ev: Dictionary) -> void:
+	_clear()
+	var bw := 720.0
+	var board := _event_board("KRAMÁŘ", Color("e8a010"), Vector2(bw, 470), "ev:kramar", func(ci: Control) -> void:
+		_ev_text(ci, ["Dobré zboží, levně!", "Platí se zlatem z kraje. Máš %d zlata." % b.gold_run]))
+	var info: Control = board.get_child(board.get_child_count() - 1)
+	var buttons := []
+	var refresh := func() -> void:
+		for pair in buttons:
+			var bt: CCButton = pair[0]
+			bt.disabled = b.gold_run < int(pair[1].price)
+			bt.queue_redraw()
+		info.queue_redraw()
+	for i in EventDefs.SHOP.size():
+		var item: Dictionary = EventDefs.SHOP[i]
+		var bt := CCButton.make(item.name, Art.BTN_GREEN if i % 2 == 0 else Art.BTN_BLUE, Vector2(320, 84), 25)
+		bt.sub = "%d · %s" % [int(item.price), item.desc]
+		bt.sub_icon = "coin"
+		bt.icon_key = item.icon
+		bt.icon_scale = 0.4
+		bt.position = Vector2(bw * 0.5 - 330 + (i % 2) * 340, 168 + (i / 2) * 98)
+		bt.pressed.connect(func():
+			if b.events.buy(item):
+				refresh.call())
+		board.add_child(bt)
+		buttons.append([bt, item])
+	refresh.call()
+	var leave := CCButton.make("Odejít", Art.BTN_GREY, Vector2(260, 60), 24)
+	leave.position = Vector2((bw - 260) * 0.5, 372)
+	leave.pressed.connect(func(): b.events.leave_peddler.call_deferred(ev))
+	board.add_child(leave)
 
 
 # ---------------------------------------------------------------- nástup bosse
