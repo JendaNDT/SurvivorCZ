@@ -8,7 +8,10 @@ class_name Main
 ##   --autoplay        hraje počítač (test)
 ##   --shots=cesta     ukládá snímky obrazovky
 ##   --shot-times=2,8  kdy (v sekundách) snímky pořídit, pak hra skončí
-##   --screen=map|shop|ending   rovnou otevře danou obrazovku
+##   --screen=map|shop|settings|perf|ending   rovnou otevře danou obrazovku
+##   --quality=low, --show-fps, --left-handed   nastavení jen pro toto spuštění
+##   --bench           v bitvě drží plný počet nepřátel a vypíše průměrné FPS
+##   --taps=640,300@3;100,200>400,200@4   ťuknutí (x,y@čas) a tažení (a>b@čas) pro test ovládání
 
 var current: Node
 var trans: CloudTransition
@@ -16,6 +19,8 @@ var shots_prefix := ""
 var shot_times: Array = []
 var shot_clock := 0.0
 var loading: Control
+var taps: Array = []
+var tap_clock := 0.0
 
 
 static func icon_jobs() -> Array:
@@ -57,6 +62,13 @@ func _ready() -> void:
 		elif a.begins_with("--shot-times="):
 			for t in a.substr(13).split(","):
 				shot_times.append(float(t))
+		elif a.begins_with("--taps="):
+			for item in a.substr(7).split(";"):
+				var parts := item.split("@")
+				var pts := parts[0].split(">")
+				var p0 := Vector2(float(pts[0].split(",")[0]), float(pts[0].split(",")[1]))
+				var p1 := p0 if pts.size() < 2 else Vector2(float(pts[1].split(",")[0]), float(pts[1].split(",")[1]))
+				taps.append({"t": float(parts[1]), "a": p0, "b": p1})
 		elif a.begins_with("--screen="):
 			screen = a.substr(9)
 		elif a == "--reset":
@@ -68,6 +80,13 @@ func _ready() -> void:
 		elif a.begins_with("--meta="):
 			for id in Upgrades.META.keys():
 				Game.data.upgrades[id] = mini(int(a.substr(7)), Upgrades.META[id].max)
+		elif a.begins_with("--quality="):
+			Game.data.settings.quality = a.substr(10)
+			Game.apply_quality()
+		elif a == "--show-fps":
+			Game.data.settings.show_fps = true
+		elif a == "--left-handed":
+			Game.data.settings.left_handed = true
 		elif a.begins_with("--conquer="):
 			for id in a.substr(10).split(","):
 				if id != "":
@@ -76,8 +95,8 @@ func _ready() -> void:
 	loading.queue_free()
 	if battle_id != "":
 		start_battle(battle_id, false)
-	elif screen == "shop":
-		show_map(false, "shop")
+	elif screen in ["shop", "settings", "perf"]:
+		show_map(false, screen)
 	elif screen.begins_with("region:"):
 		show_map(false, screen)
 	elif screen == "ending":
@@ -128,6 +147,10 @@ func _notification(what: int) -> void:
 
 
 func _process(delta: float) -> void:
+	if not taps.is_empty():
+		tap_clock += delta / maxf(Engine.time_scale, 0.01)
+		if tap_clock >= taps[0].t:
+			_tap(taps.pop_front())
 	if shots_prefix == "" or shot_times.is_empty():
 		return
 	shot_clock += delta / maxf(Engine.time_scale, 0.01)
@@ -137,6 +160,33 @@ func _process(delta: float) -> void:
 		img.save_png("%s_%03d.png" % [shots_prefix, int(t)])
 		if shot_times.is_empty():
 			get_tree().quit()
+
+
+## Vývojářský test ovládání: stisk, tažení a puštění „prstu“ (myš se převede i na dotyk).
+func _tap(step: Dictionary) -> void:
+	var a: Vector2 = step.a
+	var b: Vector2 = step.b
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = a
+	press.global_position = a
+	Input.parse_input_event(press)
+	for i in 8:
+		await get_tree().process_frame
+		if a != b:
+			var mv := InputEventMouseMotion.new()
+			mv.button_mask = MOUSE_BUTTON_MASK_LEFT
+			mv.position = a.lerp(b, (i + 1) / 8.0)
+			mv.global_position = mv.position
+			mv.relative = (b - a) / 8.0
+			Input.parse_input_event(mv)
+	var rel := InputEventMouseButton.new()
+	rel.button_index = MOUSE_BUTTON_LEFT
+	rel.pressed = false
+	rel.position = b
+	rel.global_position = b
+	Input.parse_input_event(rel)
 
 
 func _swap(node: Node, animate: bool) -> void:

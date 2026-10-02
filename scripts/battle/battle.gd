@@ -67,10 +67,16 @@ var offers_without_weapon := 0
 var autoplay := false
 var stars := 0
 var time_total := 0.0
+var low_quality := false
+## Měření plynulosti v první bitvě (pod 40 FPS mapa nabídne úspornou grafiku).
+var perf_frames := 0
+var perf_time := 0.0
+var bench := false
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
+	low_quality = Game.low_quality()
 	region = Regions.get_region(region_id)
 	tier = Game.tier_for(region_id)
 	duration = Regions.duration_for_tier(tier)
@@ -100,6 +106,7 @@ func _build_layers() -> void:
 	ground_mat.set_shader_parameter("col_a", Color(g.a))
 	ground_mat.set_shader_parameter("col_b", Color(g.b))
 	ground_mat.set_shader_parameter("col_c", Color(g.c))
+	ground_mat.set_shader_parameter("quality", 0 if low_quality else 1)
 	ground.material = ground_mat
 	world.add_child(ground)
 	ground_fx_layer = Node2D.new()
@@ -174,6 +181,8 @@ func _start() -> void:
 	player = Player.new()
 	entity_layer.add_child(player)
 	player.init(self)
+	apply_quality()
+	Game.setting_changed.connect(_on_setting)
 	rerolls = 2 + int(Game.meta_value("m_reroll"))
 	revive_left = int(Game.meta_value("m_revive"))
 	recalc_stats()
@@ -229,12 +238,40 @@ func _dev_tests() -> void:
 		if "--then-map" in args:
 			await get_tree().create_timer(1.5, true).timeout
 			leave("map")
-	elif "--test-lose" in args:
-		await get_tree().create_timer(1.0, false).timeout
+	elif "--test-lose" in args or _arg(args, "--test-lose=") != "":
+		var t := float(_arg(args, "--test-lose=")) if _arg(args, "--test-lose=") != "" else 1.0
+		await get_tree().create_timer(t, false).timeout
 		lose()
-	elif "--test-pause" in args:
+		if "--then-map" in args:
+			await get_tree().create_timer(1.5, true).timeout
+			leave("map")
+	elif "--test-pause" in args or "--test-settings" in args:
 		await get_tree().create_timer(1.0, false).timeout
 		pause_game()
+		if "--test-settings" in args:
+			overlay.show_settings()
+	elif "--bench" in args:
+		_bench()
+
+
+## Úsporná grafika: méně nepřátel naráz, bez stínů, méně částic a dekorací, jednodušší země.
+func apply_quality() -> void:
+	low_quality = Game.low_quality()
+	enemies.cap = EnemyManager.CAP_LOW if low_quality else EnemyManager.CAP_HIGH
+	fx.set_low(low_quality)
+	ground_mat.set_shader_parameter("quality", 0 if low_quality else 1)
+
+
+func _on_setting(key: String) -> void:
+	if key == "quality":
+		apply_quality()
+
+
+func _arg(args: PackedStringArray, prefix: String) -> String:
+	for x in args:
+		if x.begins_with(prefix):
+			return x.substr(prefix.length())
+	return ""
 
 
 # ---------------------------------------------------------------- herní smyčka
@@ -242,6 +279,11 @@ func _dev_tests() -> void:
 func _process(delta: float) -> void:
 	if state == State.LOADING:
 		return
+	if state == State.PLAY and elapsed > 10.0 and not Game.data.perf_checked and not low_quality:
+		perf_frames += 1
+		perf_time += delta
+	if bench:
+		_bench_fill()
 	delta = minf(delta, 1.0 / 30.0)
 	if autoplay and int(time_total / 10.0) != int((time_total + delta) / 10.0):
 		print("[t=%5.1f] stav=%d lvl=%d hp=%d/%d zabito=%d nepřátel=%d zbraně=%s boss=%s" % [time_total + delta, state, level, int(player.hp), int(player.max_hp), kills, enemies.count(), str(weapons.weapons.map(func(w): return "%s%d" % [w.id, w.level])), ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-"])
@@ -288,8 +330,11 @@ func view_rect() -> Rect2:
 	return Rect2(camera.position - vs * 0.5, vs)
 
 
+## Otřes kamery. Silné otřesy (dopady bossových útoků, hrom) i zavibrují.
 func shake(amount: float) -> void:
 	shake_amt = minf(22.0, maxf(shake_amt, amount))
+	if amount >= 9.0:
+		Game.vibrate(clampi(int(amount * 5.0), 40, 120))
 
 
 # ---------------------------------------------------------------- dekorace v kouscích mapy
@@ -319,6 +364,8 @@ func _make_chunk(k: Vector2i) -> Array:
 	rng.seed = hash(Vector3i(k.x, k.y, region_id.hash()))
 	var out := []
 	var n := rng.randi_range(1, 4)
+	if low_quality:
+		n = int(n * 0.5)
 	var decor: Array = region.decor
 	var weights := []
 	var wsum := 0.0
@@ -424,7 +471,8 @@ func damage_enemy(e: Enemy, amount: float, tags: Array, dir: Vector2 = Vector2.Z
 	if knock > 0.0 and not e.is_boss:
 		e.knock += dir * knock * (1.0 - e.knock_res)
 	var col := Color("ffe14a") if crit else (Color("cfefff") if quiet else Color.WHITE)
-	fx.number(e.position + Vector2(0, -e.r - 6), dmg, crit, col)
+	if not low_quality or crit or e.is_boss or e.elite:
+		fx.number(e.position + Vector2(0, -e.r - 6), dmg, crit, col)
 	Sfx.play("hit", -14.0, 0.2, 0.05)
 	if e.hp <= 0.0:
 		if e.is_boss:
@@ -504,6 +552,7 @@ func hit_player(dmg: float, src: Vector2, big: bool = false) -> void:
 	if big:
 		player.invuln = 0.6
 	fx.number(player.position + Vector2(0, -50), d, false, Color("ff5a48"))
+	Game.vibrate(80 if big else 40)
 	shake(5.0 if not big else 9.0)
 	Sfx.play("hurt", -4.0, 0.1, 0.1)
 	if player.hp <= 0.0:
@@ -570,11 +619,13 @@ func _open_choice() -> void:
 	if pending_chests > 0:
 		pending_chests -= 1
 		Sfx.play("chest")
+		Game.vibrate(40)
 		cards = gen_cards(3, 1)
 		overlay.show_choice(cards, "chest")
 	else:
 		pending_levelups -= 1
 		Sfx.play("levelup")
+		Game.vibrate(25)
 		cards = gen_cards(3, 0)
 		overlay.show_choice(cards, "level")
 	if autoplay:
@@ -784,6 +835,7 @@ func boss_killed() -> void:
 	boss_time = time_total - boss_start
 	Game.add_stat("bosses", 1)
 	Sfx.play("boom")
+	Game.vibrate(150)
 	shake(22.0)
 	for i in 5:
 		fx.explosion(boss.position + Vector2(randf_range(-60, 60), randf_range(-60, 60)), 90.0 + i * 20.0, Color("ffd23f"))
@@ -806,6 +858,7 @@ func win() -> void:
 	if state == State.WIN or state == State.LOSE:
 		return
 	state = State.WIN
+	_perf_verdict()
 	stars = 1
 	if player.hp >= player.max_hp * 0.5:
 		stars += 1
@@ -831,6 +884,7 @@ func lose() -> void:
 	if state == State.WIN or state == State.LOSE:
 		return
 	state = State.LOSE
+	_perf_verdict()
 	player.hp = 0.0
 	var total := int(gold_run * (1.0 + Game.meta_value("m_gold")))
 	Game.add_gold(total)
@@ -875,6 +929,50 @@ func banner(text: String, col: Color, sub: String = "") -> void:
 
 func time_left() -> float:
 	return maxf(0.0, duration - elapsed)
+
+
+## Po první bitvě (aspoň 20 s měření) se rozhodne, jestli nabídnout úspornou grafiku.
+func _perf_verdict() -> void:
+	if perf_time < 20.0 or Game.data.perf_checked:
+		return
+	var fps := perf_frames / perf_time
+	Game.data.perf_checked = true
+	if fps < 40.0:
+		Game.perf_offer = fps
+	Game.save_game()
+
+
+# ---------------------------------------------------------------- měření výkonu (--bench)
+
+## Drží plný počet nepřátel kolem nesmrtelného hrdiny a po 10 s vypíše průměrné FPS.
+func _bench() -> void:
+	for id in ["sekera", "ohen", "blesk", "aura"]:
+		weapons.add_weapon(id)
+		for k in 3:
+			weapons.level_weapon(id)
+	player.invuln = 1.0e9
+	bench = true
+	await get_tree().create_timer(3.0, false).timeout
+	var f0 := Engine.get_process_frames()
+	var t0 := Time.get_ticks_usec()
+	var n_sum := 0
+	var n_cnt := 0
+	while Time.get_ticks_usec() - t0 < 10_000_000:
+		await get_tree().process_frame
+		n_sum += enemies.count()
+		n_cnt += 1
+	var secs := (Time.get_ticks_usec() - t0) / 1.0e6
+	print("BENCH kvalita=%s FPS=%.1f nepřátel=%d okno=%s" % ["úsporná" if low_quality else "vysoká", (Engine.get_process_frames() - f0) / secs, n_sum / maxi(1, n_cnt), str(get_viewport().get_visible_rect().size)])
+	get_tree().quit()
+
+
+func _bench_fill() -> void:
+	var ids: Array = region.enemies
+	var guard := 0
+	while enemies.count() < enemies.cap and guard < 40:
+		guard += 1
+		var a := randf() * TAU
+		enemies.spawn(ids[randi() % ids.size()], player.position + Vector2(cos(a), sin(a)) * randf_range(420.0, 760.0))
 
 
 # ---------------------------------------------------------------- autopilot (testy bez hráče)

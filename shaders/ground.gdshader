@@ -7,6 +7,8 @@ uniform vec4 col_a : source_color = vec4(0.43, 0.81, 0.24, 1.0);
 uniform vec4 col_b : source_color = vec4(0.31, 0.68, 0.16, 1.0);
 uniform vec4 col_c : source_color = vec4(0.85, 0.8, 0.7, 1.0);
 uniform float time_s = 0.0;
+// 1 = plná kvalita, 0 = úsporná grafika (bez trsů trávy, méně šumu, jednodušší kameny)
+uniform int quality = 1;
 
 varying vec2 wpos;
 
@@ -35,6 +37,10 @@ float fbm(vec2 p) {
 	float v = 0.0;
 	float a = 0.5;
 	for (int i = 0; i < 3; i++) {
+		if (i == 2 && quality == 0) {
+			v += a * 0.5;
+			break;
+		}
 		v += a * noise(p);
 		p *= 2.03;
 		a *= 0.5;
@@ -42,8 +48,29 @@ float fbm(vec2 p) {
 	return v;
 }
 
+// Úsporná verze: jeden průchod, hrana z rozdílu dvou nejbližších bodů.
+vec3 voronoi_fast(vec2 p) {
+	vec2 n = floor(p);
+	vec2 f = fract(p);
+	float d1 = 8.0;
+	float d2 = 8.0;
+	float id = 0.0;
+	for (int j = -1; j <= 1; j++)
+	for (int i = -1; i <= 1; i++) {
+		vec2 g = vec2(float(i), float(j));
+		vec2 o = hash2(n + g) * 0.8 + 0.1;
+		float d = length(g + o - f);
+		if (d < d1) { d2 = d1; d1 = d; id = hash(n + g); }
+		else if (d < d2) { d2 = d; }
+	}
+	return vec3(d1, (d2 - d1) * 0.5, id);
+}
+
 // x = vzdálenost k nejbližšímu bodu, y = vzdálenost k hraně buňky, z = náhodné id buňky
 vec3 voronoi(vec2 p) {
+	if (quality == 0) {
+		return voronoi_fast(p);
+	}
 	vec2 n = floor(p);
 	vec2 f = fract(p);
 	vec2 mg = vec2(0.0);
@@ -90,6 +117,9 @@ vec3 grass(vec2 w, vec3 a, vec3 b) {
 	float big = fbm(w * 0.0035);
 	vec3 col = mix(b, a, smoothstep(0.3, 0.7, big));
 	col *= 0.93 + 0.12 * noise(w * 0.05);
+	if (quality == 0) {
+		return col;
+	}
 	float t = tufts(w, 46.0);
 	col = mix(col, a * 1.18, t * 0.55);
 	float t2 = tufts(w + vec2(17.0, 29.0), 31.0);

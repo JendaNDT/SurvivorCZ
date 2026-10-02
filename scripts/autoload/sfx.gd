@@ -17,21 +17,63 @@ var music_mutex := Mutex.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_make_bus("Music")
+	_make_bus("SFX")
 	for i in 12:
 		var p := AudioStreamPlayer.new()
-		p.bus = "Master"
+		p.bus = "SFX"
 		add_child(p)
 		players.append(p)
 	music_player = AudioStreamPlayer.new()
 	music_player.volume_db = -12.0
+	music_player.bus = "Music"
 	add_child(music_player)
+	apply_volumes()
+	Game.setting_changed.connect(_on_setting)
 	_build()
 	for k in ["map", "battle", "boss"]:
 		_prepare_music(k)
 
 
+## Hudba a efekty mají každý svou sběrnici, aby šla hlasitost nastavit zvlášť.
+func _make_bus(bus_name: String) -> void:
+	if AudioServer.get_bus_index(bus_name) >= 0:
+		return
+	AudioServer.add_bus()
+	var i := AudioServer.bus_count - 1
+	AudioServer.set_bus_name(i, bus_name)
+	AudioServer.set_bus_send(i, "Master")
+
+
+func music_vol() -> float:
+	return clampf(float(Game.setting("music_vol")), 0.0, 1.0)
+
+
+func sfx_vol() -> float:
+	return clampf(float(Game.setting("sfx_vol")), 0.0, 1.0)
+
+
+func apply_volumes() -> void:
+	for pair in [["Music", music_vol()], ["SFX", sfx_vol()]]:
+		var i := AudioServer.get_bus_index(pair[0])
+		var v: float = pair[1]
+		AudioServer.set_bus_mute(i, v <= 0.001)
+		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.001)))
+
+
+func _on_setting(key: String) -> void:
+	if key != "music_vol" and key != "sfx_vol":
+		return
+	apply_volumes()
+	if key == "music_vol":
+		if music_vol() <= 0.001:
+			music_player.stop()
+		elif want_music != "" and not music_player.playing:
+			start_music(want_music)
+
+
 func play(name: String, vol_db: float = 0.0, pitch_var: float = 0.08, min_gap: float = 0.035) -> void:
-	if not Game.sound_on() or not streams.has(name):
+	if sfx_vol() <= 0.001 or not streams.has(name):
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - float(last_play.get(name, -1.0)) < min_gap:
@@ -47,7 +89,7 @@ func play(name: String, vol_db: float = 0.0, pitch_var: float = 0.08, min_gap: f
 
 func start_music(kind: String) -> void:
 	want_music = kind
-	if not Game.sound_on():
+	if music_vol() <= 0.001:
 		music_player.stop()
 		return
 	var key := "music_" + kind
@@ -101,7 +143,7 @@ func _exit_tree() -> void:
 func _music_ready(kind: String, w: AudioStreamWAV) -> void:
 	streams["music_" + kind] = w
 	generating.erase(kind)
-	if want_music == kind and Game.sound_on():
+	if want_music == kind and music_vol() > 0.001:
 		_play_music("music_" + kind)
 
 
@@ -113,6 +155,7 @@ func _play_music(key: String) -> void:
 
 
 func stop_music() -> void:
+	want_music = ""
 	music_player.stop()
 
 

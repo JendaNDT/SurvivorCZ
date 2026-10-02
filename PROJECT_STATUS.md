@@ -6,14 +6,14 @@ Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dob�
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Zahrát si hru na telefonu, pak milník M1 (telefon a nastavení).**
-Celý plán vylepšení je v `docs/plan-vylepseni.md` (10 milníků). M1 přidá úspornou grafiku, ukazatel FPS, vibrace, hlasitost hudby a efektů zvlášť a ovládání pro leváky. Než se pustíme do M8 a dalších, je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
+**Zahrát si verzi 1.1.0 na telefonu a poslat čísla z ukazatele FPS, pak milník M2 (nástrahy krajů).**
+V nastavení zapni „Ukazatel FPS“ a zahraj si kraj až do bosse. Napiš, kolik FPS ukazuje na začátku a ve chvíli, kdy je na obrazovce nejvíc nepřátel, jestli fungují vibrace a jestli je potřeba úsporná grafika. Celý plán vylepšení je v `docs/plan-vylepseni.md`. Než se pustíme do M8 a dalších, je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
 
-Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20 s. Automat vyhrál kraje na obtížnosti 0, 1, 5, 9, 12 i 13 (s vylepšeními ze Zbrojnice), souboj s bossem trval 40–70 s a celý kraj 4–5 minut. Čísla obtížnosti jsou v `scripts/battle/battle.gd` (`enemy_hp_mult`, `enemy_dmg_mult`, `boss_dmg_mult`, HP bosse ve `start_boss`) a v `scripts/battle/director.gd` (`rate`).
+Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20 s. Po M1 automat vyhrál Karlovarsko (obtížnost 0), Jižní Moravu (7) i Moravskoslezsko (13), s vysokou i úspornou grafikou. Boss trval 35–90 s. Čísla obtížnosti jsou v `scripts/battle/battle.gd` (`enemy_hp_mult`, `enemy_dmg_mult`, `boss_dmg_mult`, HP bosse ve `start_boss`) a v `scripts/battle/director.gd` (`rate`).
 
 ## ✅ Hotovo
 - Mapa Česka se 14 kraji (skutečné hranice), odemykání sousedů, hvězdy, mlha nad zamčenými kraji, řeky, hory, hrady s vlajkou
-- Karta kraje s bossem a nepřáteli, Zbrojnice (10 trvalých vylepšení za zlato), nastavení, úvod „Jak hrát“, závěrečná oslava
+- Karta kraje s bossem a nepřáteli, Zbrojnice (10 trvalých vylepšení za zlato), úvod „Jak hrát“, závěrečná oslava
 - Bitva: joystick, úskok, ultimátka Hrom, 8 zbraní, 8 evolucí, 15 pasivních předmětů se vzácností a štítky
 - Režisér vln (formace, obklíčení, elity s truhlou, poslední vlna), 7 archetypů nepřátel
 - 42 nepřátel a 14 bossů kreslených kódem, každý boss má 3 fáze a útoky ohlášené na zemi
@@ -22,11 +22,18 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - Ukládání postupu (`user://save.json`), tlačítko Zpět na Androidu
 - Podepsané APK a workflow pro GitHub Actions, které APK sestaví automaticky
 - Vývojářská galerie kreseb, automatický hráč a rychlá simulace balancu bez grafiky
-- Meč míří sám na nejbližšího nepřítele (při couvání před hordou jinak sekal do prázdna)
+- Meč míří sám na nejbližšího nepřítele
+- **M1 Telefon a nastavení (verze 1.1.0):**
+  - nová deska nastavení na mapě i v pauze: posuvníky hudby a efektů, přepínače vibrací, úsporné grafiky, ukazatele FPS a ovládání pro leváky
+  - úsporná grafika: 150 nepřátel místo 230, bez stínů, méně částic, čísel a dekorací, jednodušší země, vykreslování v 1280×720 (v testu při 1080p 2,6× rychlejší)
+  - po první bitvě, která se sekala (pod 40 FPS), mapa sama nabídne úspornou grafiku
+  - vibrace při zásahu, dopadu bossova útoku, hromu, nové úrovni, truhle a smrti bosse
+  - uložení verze 2: starý postup se načte (ověřeno), vypnutý zvuk se převede na nulovou hlasitost, smazání postupu nastavení nechá
+  - vývojářské parametry `--bench`, `--taps`, `--quality`, `--show-fps`, `--left-handed`, `--test-settings`, `--screen=settings|perf`
 
 ## 📝 TODO
 ### Plán vylepšení (podrobně v `docs/plan-vylepseni.md`)
-- M1 Telefon a nastavení: úsporná grafika, FPS, vibrace, hlasitosti, leváci, uložení verze 2
+- ~~M1 Telefon a nastavení~~ hotovo
 - M2 Nástrahy krajů: 14 mechanik (gejzíry, tramvaj, vánice, kombajn…)
 - M3 Minibossové: náčelník v polovině každého kraje
 - M4 Pocit z boje: nástup bosse, zastavení při zásahu, prach, smrti bossů
@@ -41,7 +48,9 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - Modulátory a fúze zbraní z design dokumentu
 
 ## 🐛 Známé bugy
-- Žádné potvrzené. Výkon na slabých telefonech zatím neověřený (cíl je ~230 nepřátel naráz).
+- Žádné potvrzené. Na skutečném telefonu zatím neověřené: výkon, vibrace a automatická nabídka úsporné grafiky.
+- Zlínsko na obtížnosti 11 je pro automatického hráče těžké: před M1 prohrál 4 ze 4 pokusů, po M1 vyhrál 3 z 5 (boss ho porazí těsně). Až si ho zahraješ, napiš, jestli je moc těžký.
+- Když telefon nestíhá 30 FPS, hra se zpomalí (krok simulace je omezený na 1/30 s). Úsporná grafika by to měla vyřešit.
 - Opraveno: generování hudby ve více vláknech najednou poškozovalo paměť (teď jedno vlákno).
 - Opraveno: smrt bosse uprostřed zásahu jedovou kaluží mohla způsobit chybu indexu.
 
@@ -51,12 +60,14 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - **Délka kraje 3–5 minut** místo 20minutového runu z design dokumentu, aby to sedělo na mobil.
 - **Obtížnost podle počtu dobytých krajů**, ne podle konkrétního kraje, protože pořadí si volí hráč.
 - **Podpisový klíč pro instalaci mimo obchod je v repozitáři** (`android/sideload.keystore`), aby šly nové verze instalovat přes staré. Pro Google Play je potřeba vlastní soukromý klíč.
+- **Úsporná grafika kreslí v základním rozlišení:** test ukázal, že hru brzdí vykreslování, ne herní logika (bez vykreslování 136 FPS). Text je pak o kousek méně ostrý.
+- **Plynulost se měří od 10. s do konce bitvy**, ne 5.–20. s jako v plánu, protože na začátku je nepřátel málo.
 
 ## 📁 Stav souborů
 - `scripts/main.gd` – přepínání obrazovek a vývojářské parametry
-- `scripts/autoload/` – kreslení (Art), pečení textur (Baker), uložení (Game), zvuk (Sfx)
+- `scripts/autoload/` – kreslení (Art), pečení textur (Baker), uložení a nastavení (Game), zvuk (Sfx)
 - `scripts/data/` – kraje, nepřátelé, bossové, zbraně, vylepšení
 - `scripts/art/` – všechny kresby
 - `scripts/battle/` – logika bitvy
-- `scripts/map/`, `scripts/ui/` – mapa a uživatelské rozhraní
+- `scripts/map/`, `scripts/ui/` – mapa a uživatelské rozhraní (`settings_board.gd`, `cc_slider.gd`, `cc_toggle.gd`)
 - `shaders/` – země, moře, tráva na mapě

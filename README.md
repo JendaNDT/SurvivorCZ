@@ -31,6 +31,18 @@ APK je podepsané „sideload“ klíčem z `android/sideload.keystore`, takže 
 
 Na počítači funguje i klávesnice: **WASD / šipky** pohyb, **mezerník** úskok, **E** hrom, **Esc** pauza.
 
+## Nastavení
+
+Ozubené kolečko na mapě nebo **Nastavení** v pauze:
+
+- **Hudba** a **Efekty**: hlasitost zvlášť, posuvníkem.
+- **Vibrace**: telefon krátce zavibruje při zásahu, dopadu bossova útoku, nové úrovni a smrti bosse.
+- **Úsporná grafika**: pro slabší telefony. Méně nepřátel naráz (150 místo 230), bez stínů, méně částic, čísel zásahů a dekorací, jednodušší textura země a vykreslování v základním rozlišení. V testu na počítači v rozlišení 1080p běžela hra 2,6× rychleji.
+- **Ukazatel FPS**: v bitvě ukáže snímky za sekundu a počet nepřátel.
+- **Pro leváky**: tlačítka úskoku a hromu se přesunou doleva.
+
+Když se první bitva seká (pod 40 snímků za sekundu), hra po návratu na mapu sama nabídne úspornou grafiku.
+
 ## Kraje, nepřátelé a bossové
 
 | Kraj | Prostředí | Nepřátelé | Boss |
@@ -93,7 +105,7 @@ scripts/data/              kraje, nepřátelé a bossové, zbraně a vylepšení
 scripts/art/               kresby hrdiny, nepřátel, bossů, dekorací, střel a ikon
 scripts/battle/            bitva: hráč, nepřátelé, zbraně, střely, sběr, režisér vln, boss, efekty
 scripts/map/               mapa Česka, karta kraje, Zbrojnice, úvod
-scripts/ui/                tlačítka, HUD, dotykové ovládání, karty vylepšení, okna v bitvě, závěr
+scripts/ui/                tlačítka, posuvníky, přepínače, deska nastavení, HUD, dotykové ovládání, karty vylepšení, okna v bitvě, závěr
 scripts/dev/, scenes/dev/  galerie kreseb pro kontrolu grafiky (do APK se nebalí)
 ```
 
@@ -124,6 +136,9 @@ godot --path . -- --battle=KVK --autoplay      # hraje počítač, do konzole vy
 godot --path . -- --skip-intro --conquer=KVK,PLK --gold=500   # mapa s dobytými kraji a zlatem
 godot --path . -- --battle=KVK --autoplay --shots=/tmp/s --shot-times=10,60   # snímky obrazovky
 godot --headless --path . --fixed-fps 30 -- --battle=MSK --autoplay --tier=13 --meta=2 --quit-at-end   # rychlá simulace bez grafiky
-godot --path . -- --battle=STC --test-levelup                # okno s kartami (také --test-chest, --test-win, --test-lose, --test-pause)
+godot --path . -- --battle=STC --test-levelup                # okno s kartami (také --test-chest, --test-win, --test-lose, --test-pause, --test-settings)
+godot --path . -- --battle=PHA --bench --quality=low         # plný počet nepřátel, po 13 s vypíše průměrné FPS (porovnání kvality)
+godot --path . -- --screen=settings --taps="485,229>700,229@2"   # nastavení a simulované tažení prstem
+godot --path . -- --battle=KVK --left-handed --show-fps      # nastavení jen pro jedno spuštění
 godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony)
 ```

@@ -4,10 +4,13 @@ class_name EnemyManager
 ## prostorovou mřížku, stavové efekty, kontaktní poškození a smrt.
 
 const CELL := 80.0
-const CAP := 230
+const CAP_HIGH := 230
+const CAP_LOW := 150
 const FAR := 1150.0
 
 var b: Battle
+## Kolik nepřátel smí být naráz (úsporná grafika jich pustí méně).
+var cap := CAP_HIGH
 var list: Array[Enemy] = []
 var grid := {}
 var shadow_tex: Texture2D
@@ -23,7 +26,7 @@ func count() -> int:
 
 
 func spawn(id: String, pos: Vector2, opts: Dictionary = {}) -> Enemy:
-	if list.size() >= CAP and not opts.get("force", false):
+	if list.size() >= cap and not opts.get("force", false):
 		return null
 	var d := EnemyDefs.get_enemy(id)
 	var e := Enemy.new()
@@ -57,10 +60,11 @@ func spawn(id: String, pos: Vector2, opts: Dictionary = {}) -> Enemy:
 		e.glow.show_behind_parent = true
 		e.add_child(e.glow)
 	e.set_visual_scale(vs)
-	e.shadow = Sprite2D.new()
-	e.shadow.texture = shadow_tex
-	e.shadow.scale = Vector2(e.r / 20.0, e.r / 20.0)
-	b.shadow_layer.add_child(e.shadow)
+	if not b.low_quality:
+		e.shadow = Sprite2D.new()
+		e.shadow.texture = shadow_tex
+		e.shadow.scale = Vector2(e.r / 20.0, e.r / 20.0)
+		b.shadow_layer.add_child(e.shadow)
 	list.append(e)
 	return e
 
@@ -138,7 +142,8 @@ func update(delta: float) -> void:
 		if absf(to_p.x) > 4.0:
 			e.face = 1.0 if to_p.x > 0.0 else -1.0
 		e.animate(delta, moving)
-		e.shadow.position = e.position + Vector2(0, e.r * 1.25)
+		if e.shadow:
+			e.shadow.position = e.position + Vector2(0, e.r * 1.25)
 
 
 func _move_behavior(e: Enemy, dir: Vector2, dist: float, delta: float) -> Vector2:

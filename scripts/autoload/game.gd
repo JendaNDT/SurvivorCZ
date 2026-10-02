@@ -2,31 +2,46 @@ extends Node
 ## Game – trvalý stav hry: dobyté kraje, hvězdy, zlato, vylepšení ze Zbrojnice.
 
 const SAVE_PATH := "user://save.json"
+const SAVE_VERSION := 2
 const START_REGION := "KVK"
+const DEFAULT_SETTINGS := {
+	"music_vol": 0.8,
+	"sfx_vol": 1.0,
+	"vibrate": true,
+	"quality": "high",
+	"show_fps": false,
+	"left_handed": false,
+}
 
 signal changed
+signal setting_changed(key: String)
 
 var data: Dictionary = {}
 ## Parametry, které si předává mapa a bitva.
 var pending_region: String = ""
 ## Kraje, které se právě odemkly (mapa je zvýrazní).
 var fresh_unlocks: Array = []
+## Průměrné FPS z první bitvy, když se hra sekala (mapa pak nabídne úspornou grafiku).
+var perf_offer := 0.0
+var _vib_until := 0
 
 
 func _ready() -> void:
 	load_game()
+	apply_quality.call_deferred()
 
 
 func default_data() -> Dictionary:
 	return {
-		"version": 1,
+		"version": SAVE_VERSION,
 		"conquered": {},
 		"gold": 0,
 		"upgrades": {},
-		"sound": true,
 		"intro_seen": false,
 		"finished": false,
 		"stats": {"kills": 0, "runs": 0, "defeats": 0, "bosses": 0},
+		"settings": DEFAULT_SETTINGS.duplicate(),
+		"perf_checked": false,
 	}
 
 
@@ -39,8 +54,37 @@ func load_game() -> void:
 		return
 	var parsed = JSON.parse_string(f.get_as_text())
 	if parsed is Dictionary:
-		for k in parsed.keys():
-			data[k] = parsed[k]
+		data = _migrate(_deep_merge(default_data(), parsed))
+
+
+## Doplní do uloženého postupu klíče, které přibyly v novějších verzích hry
+## (i ve vnořených slovnících), aby se starý postup neztratil.
+func _deep_merge(defaults: Dictionary, loaded: Dictionary) -> Dictionary:
+	var out := defaults.duplicate(true)
+	for k in loaded.keys():
+		if out.get(k) is Dictionary and loaded[k] is Dictionary:
+			out[k] = _deep_merge(out[k], loaded[k])
+		elif out.has(k) and typeof(out[k]) != typeof(loaded[k]) and not (_is_num(out[k]) and _is_num(loaded[k])):
+			continue
+		else:
+			out[k] = loaded[k]
+	return out
+
+
+func _is_num(v: Variant) -> bool:
+	return typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT
+
+
+func _migrate(d: Dictionary) -> Dictionary:
+	var ver := int(d.get("version", 1))
+	if ver < 2:
+		# verze 1 měla jen vypínač zvuku
+		if d.has("sound") and not bool(d.sound):
+			d.settings.music_vol = 0.0
+			d.settings.sfx_vol = 0.0
+	d.erase("sound")
+	d.version = SAVE_VERSION
+	return d
 
 
 func save_game() -> void:
@@ -50,8 +94,13 @@ func save_game() -> void:
 	changed.emit()
 
 
+## Smaže postup, nastavení zůstane.
 func reset() -> void:
+	var keep: Dictionary = data.get("settings", DEFAULT_SETTINGS).duplicate()
+	var perf: bool = data.get("perf_checked", false)
 	data = default_data()
+	data.settings = keep
+	data.perf_checked = perf
 	save_game()
 
 
@@ -151,5 +200,37 @@ func add_stat(key: String, n: int) -> void:
 	data.stats[key] = int(data.stats.get(key, 0)) + n
 
 
-func sound_on() -> bool:
-	return bool(data.get("sound", true))
+# ---------------------------------------------------------------- nastavení
+
+func setting(key: String) -> Variant:
+	return data.settings.get(key, DEFAULT_SETTINGS.get(key))
+
+
+## save = false při tažení posuvníku (uloží se až po puštění).
+func set_setting(key: String, value: Variant, save: bool = true) -> void:
+	data.settings[key] = value
+	setting_changed.emit(key)
+	if save:
+		save_game()
+
+
+func low_quality() -> bool:
+	return setting("quality") == "low"
+
+
+## Úsporná grafika vykresluje v základním rozlišení a obraz roztáhne
+## (na telefonech s vysokým rozlišením to ušetří víc než polovinu práce grafiky).
+func apply_quality() -> void:
+	var win := get_tree().root
+	win.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT if low_quality() else Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+
+
+## Krátké zavibrování telefonu (jen na Androidu a když je vibrace zapnutá).
+func vibrate(ms: int) -> void:
+	if not bool(setting("vibrate")) or not OS.has_feature("mobile"):
+		return
+	var now := Time.get_ticks_msec()
+	if now < _vib_until:
+		return
+	_vib_until = now + ms + 60
+	Input.vibrate_handheld(ms)

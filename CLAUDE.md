@@ -44,6 +44,10 @@ $G --headless --path . --fixed-fps 30 res://scenes/main.tscn -- --battle=MSK --a
 
 `--meta=N` nastaví všechna vylepšení ze Zbrojnice na úroveň N (přepisuje uložený postup v tomto prostředí).
 
+Výkon: `--bench` drží plný počet nepřátel a vypíše průměrné FPS, porovnej `--quality=high` a `--quality=low` (pod Xvfb s `--resolution 1920x1080`). Ovládání se dá vyzkoušet přes `--taps="x,y@čas;a,b>c,d@čas"` (ťuknutí a tažení). Pod Xvfb běží hra pomalu, dávej mezi ťuknutí aspoň 1 s, jinak se překrývají.
+
+- Nastavení čti přes `Game.setting(key)` a měň přes `Game.set_setting(key, value)` (vyšle `Game.setting_changed`). Nové klíče uložení přidej do `Game.default_data()`, starší uložení se doplní samo (`_deep_merge`).
+- Nové efekty a nepřátelé musí brát ohled na úspornou grafiku (`Battle.low_quality`, `Fx.low`, `EnemyManager.cap`).
 - GDScript ve více vláknech najednou (WorkerThreadPool) poškozoval paměť – na pozadí používej jedno `Thread`.
 - Pole, ze kterých se během procházení může mazat (střely, zóny), procházej přes `.duplicate()`.
 

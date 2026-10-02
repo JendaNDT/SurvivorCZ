@@ -1,7 +1,8 @@
 extends Control
 class_name TouchControls
-## Dotykové ovládání: plovoucí joystick (kdekoli v levé části obrazovky),
+## Dotykové ovládání: plovoucí joystick (kdekoli mimo tlačítka),
 ## tlačítko úskoku, ultimátky a pauzy. Podporuje více prstů najednou.
+## Pro leváky jsou úskok a hrom zrcadlově vlevo.
 ## Na počítači funguje i klávesnice (WASD/šipky, mezerník, E, Esc).
 
 var b: Battle
@@ -17,12 +18,17 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
+## Vodorovná poloha měřená od pravého okraje (pro leváky od levého).
+func _from_side(x: float) -> float:
+	return x if bool(Game.setting("left_handed")) else size.x - x
+
+
 func _dash_c() -> Vector2:
-	return Vector2(size.x - 110, size.y - 110)
+	return Vector2(_from_side(110), size.y - 110)
 
 
 func _ult_c() -> Vector2:
-	return Vector2(size.x - 235, size.y - 70)
+	return Vector2(_from_side(235), size.y - 70)
 
 
 func _pause_c() -> Vector2:
@@ -115,7 +121,7 @@ func _draw() -> void:
 		draw_circle(knob, 30, Color("e9eef3"))
 		draw_circle(knob + Vector2(-8, -10), 10, Color(1, 1, 1, 0.8))
 	else:
-		var hint := Vector2(150, size.y - 140)
+		var hint := Vector2(size.x - _from_side(150), size.y - 140)
 		draw_arc(hint, JOY_R, 0, TAU, 48, Color(1, 1, 1, 0.18), 3.0, true)
 		draw_circle(hint, 24, Color(1, 1, 1, 0.12))
 	# úskok

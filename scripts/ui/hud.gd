@@ -86,6 +86,9 @@ func _draw() -> void:
 	var rx := vs.x - 120.0
 	_counter(Vector2(rx - 150, top + 6), "coin", str(b.gold_run))
 	_counter(Vector2(rx - 150, top + 44), "skull", str(b.kills))
+	if bool(Game.setting("show_fps")):
+		var ft := "FPS %d · nepřátel %d" % [Engine.get_frames_per_second(), b.enemies.count()]
+		Art.text(self, Vector2(rx - 150, top + 102), ft, 16, Color("bfffa8"), 5, HORIZONTAL_ALIGNMENT_LEFT, 260)
 	# --- oznámení
 	var active := b.state == Battle.State.PLAY or b.state == Battle.State.BOSS or b.state == Battle.State.BOSS_INTRO
 	if active:

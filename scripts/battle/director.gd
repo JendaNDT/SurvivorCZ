@@ -77,7 +77,7 @@ func _spawn_group(f: float, in_arena: bool) -> void:
 	var n := mini(int(budget / cost), maxn)
 	if n <= 0:
 		return
-	if b.enemies.count() >= EnemyManager.CAP - 5:
+	if b.enemies.count() >= b.enemies.cap - 5:
 		return
 	budget -= n * cost
 	var pp: Vector2 = b.player.position

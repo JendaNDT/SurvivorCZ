@@ -8,7 +8,7 @@ Plán pokrývá všechny navržené vylepšení: nástrahy a minibosse v krajíc
 
 | # | Milník | Co přinese | Náročnost |
 | --- | --- | --- | --- |
-| M1 | Telefon a nastavení | úsporná grafika, FPS, vibrace, hlasitost hudby a efektů zvlášť, leváci | 1 session |
+| M1 ✅ | Telefon a nastavení | úsporná grafika, FPS, vibrace, hlasitost hudby a efektů zvlášť, leváci | hotovo (verze 1.1.0) |
 | M2 | Nástrahy krajů | 14 mechanik, každý kraj se hraje jinak | 2 sessions |
 | M3 | Minibossové | náčelník v polovině každého kraje | 1 session |
 | M4 | Pocit z boje | nástup bosse, krátké zastavení při zásahu, prach, smrti bossů | 1 session |
@@ -90,6 +90,8 @@ Každá nová obrazovka a mechanika dostane parametr pro rychlé vyzkoušení. P
 ## M1 Telefon a nastavení
 
 **Cíl:** hra běží plynule i na slabším telefonu a nastavení je pohodlné.
+
+**Stav: hotovo ve verzi 1.1.0.** Proti plánu dvě změny: plynulost se měří od 10. sekundy až do konce bitvy (na začátku je nepřátel málo, takže měření 5.–20. s by sekání neodhalilo), a úsporná grafika navíc vykresluje v základním rozlišení 1280×720 a obraz roztáhne (text je o kousek méně ostrý, grafika telefonu ale udělá víc než o polovinu méně práce).
 
 ### Úsporná grafika
 

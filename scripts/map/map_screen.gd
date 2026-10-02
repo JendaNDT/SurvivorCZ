@@ -78,8 +78,15 @@ func _ready() -> void:
 		_toast("Odemčeno: " + ", ".join(names))
 	if not Game.data.get("intro_seen", false):
 		show_intro()
+	elif Game.perf_offer > 0.0:
+		show_perf_offer(Game.perf_offer)
+		Game.perf_offer = 0.0
 	elif open_on_start == "shop":
 		show_shop()
+	elif open_on_start == "settings":
+		show_settings()
+	elif open_on_start == "perf":
+		show_perf_offer(31.0)
 	elif open_on_start.begins_with("region:"):
 		select(open_on_start.substr(7))
 	elif Game.all_conquered() and not Game.data.get("ending_seen", false):
@@ -276,45 +283,50 @@ func show_shop() -> void:
 
 func show_settings() -> void:
 	_modal()
-	var board := MapUI.Board.new()
-	board.title = "NASTAVENÍ"
-	board.ribbon_col = Color("3fa8ff")
-	board.size = Vector2(460, 400)
-	board.position = (size - board.size) * 0.5
+	var board := SettingsBoard.make(true)
+	board.size.y = minf(board.size.y, size.y - 16)
+	board.position = (size - board.size) * 0.5 + Vector2(0, 6)
+	board.help_pressed.connect(show_intro)
+	board.reset_done.connect(func():
+		close_popup()
+		refresh())
 	popup_layer.add_child(board)
 	_pop(board)
 	_close_button(board, Vector2(board.size.x - 44, -14))
-	var snd := CCButton.make("Zvuk: " + ("zapnutý" if Game.sound_on() else "vypnutý"), Art.BTN_BLUE, Vector2(320, 70), 26)
-	snd.position = Vector2(70, 70)
-	snd.pressed.connect(func():
-		Game.data.sound = not Game.sound_on()
-		Game.save_game()
-		if Game.sound_on():
-			Sfx.start_music("map")
-		else:
-			Sfx.stop_music()
-		snd.caption = "Zvuk: " + ("zapnutý" if Game.sound_on() else "vypnutý")
-		snd.queue_redraw())
-	board.add_child(snd)
-	var help := CCButton.make("Jak hrát", Art.BTN_YELLOW, Vector2(320, 70), 26)
-	help.position = Vector2(70, 156)
-	help.pressed.connect(show_intro)
-	board.add_child(help)
-	var reset := CCButton.make("Smazat postup", Art.BTN_RED, Vector2(320, 70), 26)
-	reset.position = Vector2(70, 242)
-	var armed := [false]
-	reset.pressed.connect(func():
-		if not armed[0]:
-			armed[0] = true
-			reset.caption = "Opravdu smazat?"
-			reset.queue_redraw()
-		else:
-			Game.reset()
-			Game.data.intro_seen = true
-			Game.save_game()
-			close_popup()
-			refresh())
-	board.add_child(reset)
+
+
+## Nabídka úsporné grafiky, když se první bitva sekala.
+func show_perf_offer(fps: float) -> void:
+	_modal()
+	var board := MapUI.Board.new()
+	board.title = "SEKÁ SE TO?"
+	board.ribbon_col = Color("ff9a2a")
+	board.size = Vector2(560, 320)
+	board.position = (size - board.size) * 0.5
+	popup_layer.add_child(board)
+	_pop(board)
+	var info := Label.new()
+	info.text = "V bitvě běžela hra jen na %d snímků za sekundu.\nÚsporná grafika ubere efekty a nepřátele naráz\na hra poběží plynuleji. Změníš to i v nastavení." % roundi(fps)
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info.add_theme_color_override("font_color", Color("4a2c12"))
+	info.add_theme_constant_override("outline_size", 0)
+	info.add_theme_constant_override("shadow_outline_size", 0)
+	info.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	info.add_theme_font_size_override("font_size", 21)
+	info.position = Vector2(20, 66)
+	info.size = Vector2(520, 120)
+	board.add_child(info)
+	var yes := CCButton.make("Zapnout", Art.BTN_GREEN, Vector2(230, 70), 28)
+	yes.position = Vector2(board.size.x * 0.5 - 246, board.size.y - 100)
+	yes.pressed.connect(func():
+		Game.set_setting("quality", "low")
+		Game.apply_quality()
+		close_popup())
+	board.add_child(yes)
+	var no := CCButton.make("Ne, díky", Art.BTN_GREY, Vector2(230, 70), 28)
+	no.position = Vector2(board.size.x * 0.5 + 16, board.size.y - 100)
+	no.pressed.connect(close_popup)
+	board.add_child(no)
 
 
 func show_intro() -> void:

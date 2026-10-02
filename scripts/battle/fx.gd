@@ -7,12 +7,20 @@ var bolts: Array = []
 var booms: Array = []
 var parts: Array = []
 
-const MAX_NUMS := 60
-const MAX_PARTS := 260
+## Úsporná grafika: méně částic a čísel zásahů.
+var low := false
+var max_nums := 60
+var max_parts := 260
+
+
+func set_low(on: bool) -> void:
+	low = on
+	max_nums = 20 if on else 60
+	max_parts = 90 if on else 260
 
 
 func number(pos: Vector2, value: float, crit: bool = false, col: Color = Color.WHITE) -> void:
-	if nums.size() >= MAX_NUMS:
+	if nums.size() >= max_nums:
 		nums.pop_front()
 	var txt := str(int(round(value))) if value >= 1.0 else str(snappedf(value, 0.1))
 	nums.append({"pos": pos + Vector2(randf_range(-10, 10), -20), "txt": txt, "t": 0.0, "crit": crit, "col": col, "vx": randf_range(-25, 25)})
@@ -45,18 +53,21 @@ func explosion(pos: Vector2, r: float, col: Color = Color("ffb030")) -> void:
 
 
 func burst(pos: Vector2, col: Color, n: int = 6, speed: float = 160.0, size: float = 5.0) -> void:
+	if low:
+		n = ceili(n * 0.5)
 	for i in n:
-		if parts.size() >= MAX_PARTS:
+		if parts.size() >= max_parts:
 			parts.pop_front()
 		var a := randf() * TAU
 		parts.append({"pos": pos, "vel": Vector2(cos(a), sin(a)) * randf_range(speed * 0.3, speed), "t": 0.0, "life": randf_range(0.3, 0.6), "col": col, "size": randf_range(size * 0.6, size * 1.3)})
 
 
 func poof(pos: Vector2, col: Color = Color(1, 1, 1, 0.9)) -> void:
-	for i in 7:
-		if parts.size() >= MAX_PARTS:
+	var n := 3 if low else 7
+	for i in n:
+		if parts.size() >= max_parts:
 			parts.pop_front()
-		var a := TAU * i / 7.0 + randf() * 0.5
+		var a := TAU * i / float(n) + randf() * 0.5
 		parts.append({"pos": pos, "vel": Vector2(cos(a), sin(a)) * randf_range(60, 130), "t": 0.0, "life": 0.45, "col": col, "size": randf_range(7, 11), "puff": true})
 
 

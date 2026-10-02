@@ -154,30 +154,35 @@ func show_pause() -> void:
 		var cx := ci.size.x * 0.5
 		ci.draw_string(Art.font, Vector2(0, 30), b.region.name, HORIZONTAL_ALIGNMENT_CENTER, ci.size.x, 26, Color("4a2c12"))
 		ci.draw_string(Art.font, Vector2(0, 64), "Úroveň %d   ·   Zabito %d   ·   Zlato %d" % [b.level, b.kills, b.gold_run], HORIZONTAL_ALIGNMENT_CENTER, ci.size.x, 19, Color("6b4a2a"))
-		ci.draw_string(Art.font, Vector2(0, 94), "Ovládání: joystick vlevo, úskok a hrom vpravo", HORIZONTAL_ALIGNMENT_CENTER, ci.size.x, 16, Color("8a6a4a"))
+		var side := "vlevo" if bool(Game.setting("left_handed")) else "vpravo"
+		ci.draw_string(Art.font, Vector2(0, 94), "Táhni prstem kdekoli, úskok a hrom jsou " + side, HORIZONTAL_ALIGNMENT_CENTER, ci.size.x, 16, Color("8a6a4a"))
 	board.add_child(info)
 	var y := 180.0
 	var cont := CCButton.make("Pokračovat", Art.BTN_GREEN, Vector2(320, 74), 30)
 	cont.position = Vector2((bw - 320) * 0.5, y)
 	cont.pressed.connect(b.resume_game)
 	board.add_child(cont)
-	var snd := CCButton.make("Zvuk: " + ("zapnutý" if Game.sound_on() else "vypnutý"), Art.BTN_BLUE, Vector2(320, 64), 24)
-	snd.position = Vector2((bw - 320) * 0.5, y + 86)
-	snd.pressed.connect(func():
-		Game.data.sound = not Game.sound_on()
-		Game.save_game()
-		if Game.sound_on():
-			Sfx.start_music("battle")
-		else:
-			Sfx.stop_music()
-		snd.caption = "Zvuk: " + ("zapnutý" if Game.sound_on() else "vypnutý")
-		snd.queue_redraw())
-	board.add_child(snd)
+	var st := CCButton.make("Nastavení", Art.BTN_BLUE, Vector2(320, 64), 24)
+	st.icon_key = "ui:gear"
+	st.icon_scale = 0.42
+	st.position = Vector2((bw - 320) * 0.5, y + 86)
+	st.pressed.connect(show_settings)
+	board.add_child(st)
 	var quit := CCButton.make("Vzdát se", Art.BTN_RED, Vector2(320, 64), 24)
 	quit.position = Vector2((bw - 320) * 0.5, y + 162)
 	quit.pressed.connect(func():
 		b.lose())
 	board.add_child(quit)
+
+
+func show_settings() -> void:
+	_clear()
+	var board := SettingsBoard.make(false)
+	board.size.y = minf(board.size.y, size.y - 16)
+	board.position = (size - board.size) * 0.5
+	board.back_pressed.connect(show_pause)
+	content.add_child(board)
+	_pop(board)
 
 
 # ---------------------------------------------------------------- výhra a prohra
