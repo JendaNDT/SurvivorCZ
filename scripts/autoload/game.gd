@@ -36,6 +36,7 @@ var _crumb_t := 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	note("start, verze %s" % ProjectSettings.get_setting("application/config/version", ""))
 	load_game()
 	_check_last_session()
 	apply_quality.call_deferred()
@@ -62,7 +63,14 @@ func _notification(what: int) -> void:
 func crumb(values: Dictionary) -> void:
 	for k in values.keys():
 		crumbs[k] = values[k]
+	if values.has("screen"):
+		note("obrazovka: %s %s" % [values.screen, values.get("region", "")])
 	_write_session("running")
+
+
+## Řádek do logu (user://logs/godot.log). Po pádu ukáže hlášení posledních pár řádků.
+func note(text: String) -> void:
+	print("[%d s] %s" % [Time.get_ticks_msec() / 1000, text])
 
 
 func session_end() -> void:
@@ -89,14 +97,14 @@ func _check_last_session() -> void:
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string(SESSION_PATH))
 		if parsed is Dictionary and parsed.get("state", "") == "running":
 			crash_report = parsed
-			crash_report["log"] = _last_log_errors()
+			crash_report["log"] = _last_log_lines()
 			add_stat("crashes", 1)
 			save_game()
 	_write_session("running")
 
 
-## Poslední chybové hlášky z minulého běhu (Godot při startu starý log přejmenuje).
-func _last_log_errors() -> Array:
+## Posledních pár řádků logu z minulého běhu (Godot při startu starý log přejmenuje).
+func _last_log_lines() -> Array:
 	var dir := DirAccess.open("user://logs")
 	if dir == null:
 		return []
@@ -109,10 +117,12 @@ func _last_log_errors() -> Array:
 	var lines := FileAccess.get_file_as_string("user://logs/" + newest).split("\n")
 	var out := []
 	for l in lines:
+		var t := l.strip_edges()
 		# chyba zvukového ovladače se objevuje jen na počítači bez zvukové karty
-		if ("ERROR" in l or "error" in l) and not "status < 0" in l and not "ALSA" in l:
-			out.append(l.strip_edges().substr(0, 110))
-	return out.slice(maxi(0, out.size() - 4))
+		if t == "" or "status < 0" in t or "ALSA" in t or t.begins_with("at:"):
+			continue
+		out.append(t.substr(0, 100))
+	return out.slice(maxi(0, out.size() - 6))
 
 
 func default_data() -> Dictionary:

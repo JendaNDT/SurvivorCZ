@@ -32,6 +32,7 @@ func _init() -> void:
 		add_theme_stylebox_override(st, empty)
 	button_down.connect(_on_down)
 	button_up.connect(_on_up)
+	pressed.connect(func(): Game.note("klik: " + caption))
 	resized.connect(func(): pivot_offset = size * 0.5)
 
 

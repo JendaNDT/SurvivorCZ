@@ -6,8 +6,8 @@ Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dob�
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Zahrát si verzi 1.2.1 na telefonu: jestli hra ještě „padá“ v menu.**
-Na mapě teď gesto Zpět nejdřív zobrazí dotaz „Ukončit hru?“. Kdyby hra přesto spadla, při dalším spuštění ukáže okno „Hra minule spadla“ s místem, pamětí a časem. Pošli mi jeho snímek. Pak milník M3 (minibossové). Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
+**Zahrát si verzi 1.2.2 na telefonu: jestli hra ještě padá (hlavně při nákupu ve Zbrojnici).**
+Kdyby spadla, při dalším spuštění ukáže okno „Hra minule spadla“, teď i s posledními akcemi před pádem. Pošli mi jeho snímek. Pak milník M3 (minibossové). Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
 
 Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`.
 
@@ -38,6 +38,8 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
   - černá skříňka: po pádu mapa ukáže, kde a kdy k němu došlo, a hra zapisuje log i na telefonu (ověřeno násilným ukončením hry uprostřed bitvy)
   - zátěžový test `--soak=N`: 28 bitev za sebou bez úniku paměti
   - verze 1.2.1: gesto Zpět na mapě se zeptá „Ukončit hru?“ místo okamžitého konce, mapa už každý snímek nepřepočítává obrysy štítů, vlajek a šipky
+  - verze 1.2.2: každý zvuk má vlastní přehrávač, sběrnice jsou v `default_bus_layout.tres`, obchod jen přepisuje tlačítka, log se zapisuje hned a hlášení o pádu ukáže posledních 6 řádků (ťuknutí, obrazovky)
+  - nové testy: skutečné míchání zvuku (ALSA bez zvukové karty) a ladicí režim, který odhalí přístup ke smazaným objektům. 4 celé bitvy a 5 přechodů mapa ↔ bitva bez jediné chyby
 
 ## 📝 TODO
 ### Plán vylepšení (podrobně v `docs/plan-vylepseni.md`)
@@ -56,7 +58,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - Modulátory a fúze zbraní z design dokumentu
 
 ## 🐛 Známé bugy
-- **Hra „padala“ na plochu v menu.** Nejpravděpodobnější příčina: na mapě gesto Zpět (přejetí od okraje displeje) hru okamžitě ukončilo. Od verze 1.2.1 se nejdřív zeptá. Další možné příčiny (hudba ve vlákně, rostoucí grafická paměť) jsou opravené ve verzi 1.2.0. Jestli pády zmizely, ověří hraní na telefonu.
+- **Hra padá na plochu v menu, naposledy při nákupu ve Zbrojnici (verze 1.2.1, do minuty od spuštění).** Na serveru se pád nepodařilo vyvolat, ani se skutečným mícháním zvuku a v ladicím režimu. Ve verzi 1.2.2 jsou odstraněná všechna podezřelá místa: zvuky už nemění skladbu hrajícím přehrávačům, zvukové sběrnice se nepřidávají za běhu, obchod nemaže tlačítka pod prstem. Dřív opraveno: hudba ve vlákně (1.2.0), rostoucí grafická paměť (1.2.0), okamžitý konec hry gestem Zpět (1.2.1). Jestli pády zmizely, ověří hraní na telefonu.
 - Zlínsko a Olomoucko na obtížnosti 11–12 vyhraje automat jen asi napůl (boss je těsně neporazí). Až si je zahraješ, napiš, jestli jsou moc těžké.
 - Když telefon nestíhá 30 FPS, hra se zpomalí (krok simulace je omezený na 1/30 s).
 - Opraveno: smrt bosse uprostřed zásahu jedovou kaluží mohla způsobit chybu indexu.

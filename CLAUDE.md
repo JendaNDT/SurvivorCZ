@@ -48,6 +48,10 @@ Výkon: `--bench` drží plný počet nepřátel a vypíše průměrné FPS, por
 
 - Nastavení čti přes `Game.setting(key)` a měň přes `Game.set_setting(key, value)` (vyšle `Game.setting_changed`). Nové klíče uložení přidej do `Game.default_data()`, starší uložení se doplní samo (`_deep_merge`).
 - Nové efekty a nepřátelé musí brát ohled na úspornou grafiku (`Battle.low_quality`, `Fx.low`, `EnemyManager.cap`).
+- **Zvuk:** každý zvuk má vlastní `AudioStreamPlayer` (víc hlasů přes `max_polyphony`), hudba má přehrávač pro každou skladbu. Přehrávačům neměň `stream`, když hrají, a nepřidávej sběrnice za běhu (jsou v `default_bus_layout.tres`). Na telefonu míchá zvuk vlastní vlákno.
+- **UI:** nemaž a znovu nevytvářej tlačítka uvnitř jejich vlastního `pressed` (obchod tlačítka jen přepisuje). Akce, které mění obrazovku, volej přes `call_deferred`.
+- **Testy na telefonu chybí, tak testuj takhle:** zvuk se skutečným mícháním přes `--audio-driver ALSA` (soubor `~/.asoundrc` s `pcm.!default { type null }`) a přístupy ke smazaným objektům v ladicím režimu `yes c | godot -d …` (ve verzi pro telefon by takový přístup hru shodil, editor ho bez `-d` neohlásí). Hledej v logu `Debugger Break`.
+- Log: `Game.note("…")` zapíše řádek do `user://logs/godot.log`, každé ťuknutí na `CCButton` se zapisuje samo. Po pádu ukáže hlášení posledních 6 řádků.
 - **Žádná vlákna.** Generování hudby ve vlákně na pozadí poškozovalo paměť a hra na telefonu padala. Dlouhé výpočty rozděl do snímků (`await get_tree().process_frame`), jako to dělá `Sfx._music`.
 - Nástrahy krajů: data v `scripts/data/hazards.gd`, logika v `scripts/battle/hazards.gd` (`HazardSystem`), kresby v `scripts/art/hazard_art.gd`. Vliv na pohyb jde přes `speed_mult()` a `push_at()`, geometrie v kouscích mapy přes `make_chunk()`/`drop_chunk()`. Test: `--hazard-now`.
 - Kresby kraje se po odchodu z bitvy uvolní (`Baker.purge`). Nové předpony klíčů pro kresby kraje přidej do `Battle.leave()`.

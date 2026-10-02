@@ -4,10 +4,12 @@ extends Node
 const RATE := 22050
 
 var streams := {}
-var players: Array[AudioStreamPlayer] = []
+## Každý zvuk má vlastní přehrávač (víc hlasů přes max_polyphony), hudba má
+## přehrávač pro každou skladbu. Přehrávačům se nikdy nemění skladba, když hrají:
+## na telefonu běží míchání zvuku ve vlastním vlákně a výměna by mohla hru shodit.
+var players := {}
+var music_players := {}
 var last_play := {}
-var next_player := 0
-var music_player: AudioStreamPlayer
 var want_music := ""
 var generating := {}
 var music_queue: Array = []
@@ -18,17 +20,9 @@ const MUSIC_VERSION := 1
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# sběrnice Music a SFX jsou v default_bus_layout.tres, tohle je jen pojistka
 	_make_bus("Music")
 	_make_bus("SFX")
-	for i in 12:
-		var p := AudioStreamPlayer.new()
-		p.bus = "SFX"
-		add_child(p)
-		players.append(p)
-	music_player = AudioStreamPlayer.new()
-	music_player.volume_db = -12.0
-	music_player.bus = "Music"
-	add_child(music_player)
 	apply_volumes()
 	Game.setting_changed.connect(_on_setting)
 	_build()
@@ -68,8 +62,8 @@ func _on_setting(key: String) -> void:
 	apply_volumes()
 	if key == "music_vol":
 		if music_vol() <= 0.001:
-			music_player.stop()
-		elif want_music != "" and not music_player.playing:
+			_stop_all_music()
+		elif want_music != "" and not _music_playing():
 			start_music(want_music)
 
 
@@ -80,9 +74,14 @@ func play(name: String, vol_db: float = 0.0, pitch_var: float = 0.08, min_gap: f
 	if now - float(last_play.get(name, -1.0)) < min_gap:
 		return
 	last_play[name] = now
-	var p := players[next_player]
-	next_player = (next_player + 1) % players.size()
-	p.stream = streams[name]
+	var p: AudioStreamPlayer = players.get(name)
+	if p == null:
+		p = AudioStreamPlayer.new()
+		p.bus = "SFX"
+		p.max_polyphony = 4
+		p.stream = streams[name]
+		add_child(p)
+		players[name] = p
 	p.volume_db = vol_db
 	p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
 	p.play()
@@ -91,7 +90,7 @@ func play(name: String, vol_db: float = 0.0, pitch_var: float = 0.08, min_gap: f
 func start_music(kind: String) -> void:
 	want_music = kind
 	if music_vol() <= 0.001:
-		music_player.stop()
+		_stop_all_music()
 		return
 	var key := "music_" + kind
 	if streams.has(key):
@@ -157,15 +156,36 @@ func _music_ready(kind: String, w: AudioStreamWAV) -> void:
 
 
 func _play_music(key: String) -> void:
-	if music_player.stream == streams[key] and music_player.playing:
-		return
-	music_player.stream = streams[key]
-	music_player.play()
+	var p: AudioStreamPlayer = music_players.get(key)
+	if p == null:
+		p = AudioStreamPlayer.new()
+		p.bus = "Music"
+		p.volume_db = -12.0
+		p.stream = streams[key]
+		add_child(p)
+		music_players[key] = p
+	for k in music_players.keys():
+		if k != key and music_players[k].playing:
+			music_players[k].stop()
+	if not p.playing:
+		p.play()
+
+
+func _music_playing() -> bool:
+	for p in music_players.values():
+		if p.playing:
+			return true
+	return false
+
+
+func _stop_all_music() -> void:
+	for p in music_players.values():
+		p.stop()
 
 
 func stop_music() -> void:
 	want_music = ""
-	music_player.stop()
+	_stop_all_music()
 
 
 # ---------------------------------------------------------------- syntéza

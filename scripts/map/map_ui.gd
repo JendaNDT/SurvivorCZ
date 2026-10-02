@@ -141,40 +141,44 @@ class RegionCard extends Control:
 ## Zbrojnice – trvalá vylepšení za zlato.
 class ShopBoard extends Control:
 	var m: MapScreen
+	var buttons := {}
 
+	## Tlačítka se vytvoří jednou a po nákupu se jen přepíšou. Dřív se mazala
+	## a tvořila znovu přímo pod prstem, uprostřed zpracování dotyku.
 	func build() -> void:
-		for c in get_children():
-			if c is CCButton and c.size.x > 60:
-				c.queue_free()
 		var ids: Array = Upgrades.META.keys()
 		var cols := 5
 		var cw := (size.x - 60.0 - (cols - 1) * 12.0) / cols
 		var ch := 200.0
 		for i in ids.size():
 			var id: String = ids[i]
-			var col := i % cols
-			var row := i / cols
-			var pos := Vector2(30 + col * (cw + 12.0), 96 + row * (ch + 18.0))
+			var pos := Vector2(30 + (i % cols) * (cw + 12.0), 96 + (i / cols) * (ch + 18.0))
 			var def: Dictionary = Upgrades.META[id]
-			var lvl := Game.upgrade_level(id)
-			var maxed: bool = lvl >= def.max
+			var maxed: bool = Game.upgrade_level(id) >= def.max
 			var cost := Game.meta_cost(id)
-			var bt := CCButton.make("MAX" if maxed else str(cost), Art.BTN_GREY if maxed else (Art.BTN_GREEN if Game.gold() >= cost else Art.BTN_RED), Vector2(cw - 30, 50), 24)
-			if not maxed:
-				bt.icon_key = "icon:coin"
+			var bt: CCButton = buttons.get(id)
+			if bt == null:
+				bt = CCButton.make("", Art.BTN_GREEN, Vector2(cw - 30, 50), 24)
+				bt.position = pos + Vector2(15, ch - 64)
 				bt.icon_scale = 0.38
+				bt.pressed.connect(_buy.bind(id))
+				add_child(bt)
+				buttons[id] = bt
+			bt.caption = "MAX" if maxed else str(cost)
+			bt.color = Art.BTN_GREY if maxed else (Art.BTN_GREEN if Game.gold() >= cost else Art.BTN_RED)
+			bt.icon_key = "" if maxed else "icon:coin"
 			bt.disabled = maxed
-			bt.position = pos + Vector2(15, ch - 64)
-			bt.pressed.connect(func():
-				if Game.buy_upgrade(id):
-					Sfx.play("coin")
-					Sfx.play("levelup", -6.0)
-				else:
-					Sfx.play("hurt", -8.0)
-				build()
-				queue_redraw())
-			add_child(bt)
+			bt.queue_redraw()
 		queue_redraw()
+
+	func _buy(id: String) -> void:
+		Game.note("nákup " + id)
+		if Game.buy_upgrade(id):
+			Sfx.play("coin")
+			Sfx.play("levelup", -6.0)
+		else:
+			Sfx.play("hurt", -8.0)
+		build.call_deferred()
 
 	func _draw() -> void:
 		Art.panel(self, Rect2(Vector2.ZERO, size))
