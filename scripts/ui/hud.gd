@@ -1,7 +1,8 @@
 extends Control
 class_name Hud
 ## Horní lišta v bitvě: životy, elixír (zkušenosti), úroveň, čas, zlato, zabití,
-## seznam zbraní, ukazatel bosse a oznámení uprostřed obrazovky.
+## seznam zbraní, ukazatel bosse, šipka k náčelníkovi mimo obrazovku
+## a oznámení uprostřed obrazovky.
 
 var b: Battle
 var snap := []
@@ -37,7 +38,7 @@ func _process(delta: float) -> void:
 			i -= 1
 		flash_a = maxf(0.0, flash_a - delta * 2.5)
 	redraw_t -= delta
-	if redraw_t <= 0.0 or not banners.is_empty() or flash_a > 0.0:
+	if redraw_t <= 0.0 or not banners.is_empty() or flash_a > 0.0 or _chief_screen_pos() != Vector2.INF:
 		redraw_t = 0.1
 		queue_redraw()
 
@@ -89,6 +90,10 @@ func _draw() -> void:
 	if bool(Game.setting("show_fps")):
 		var ft := "FPS %d · nepřátel %d" % [Engine.get_frames_per_second(), b.enemies.count()]
 		Art.text(self, Vector2(rx - 150, top + 102), ft, 16, Color("bfffa8"), 5, HORIZONTAL_ALIGNMENT_LEFT, 260)
+	# --- šipka k náčelníkovi, který je mimo obrazovku
+	var cp := _chief_screen_pos()
+	if cp != Vector2.INF and not get_tree().paused:
+		_chief_arrow(cp, vs)
 	# --- oznámení
 	var active := b.state == Battle.State.PLAY or b.state == Battle.State.BOSS or b.state == Battle.State.BOSS_INTRO
 	if active:
@@ -102,6 +107,31 @@ func _draw() -> void:
 		for k in 4:
 			draw_rect(Rect2(Vector2.ZERO, Vector2(vs.x, 10 + k * 8)), Color(0.9, 0, 0, a * 0.25))
 			draw_rect(Rect2(Vector2(0, vs.y - 10 - k * 8), Vector2(vs.x, 10 + k * 8)), Color(0.9, 0, 0, a * 0.25))
+
+
+## Poloha náčelníka na obrazovce, když je mimo ni (jinak Vector2.INF).
+func _chief_screen_pos() -> Vector2:
+	if b == null or b.chief == null or not b.chief.alive or b.chief.intro_t > 0.0:
+		return Vector2.INF
+	var p: Vector2 = b.chief.get_global_transform_with_canvas().origin
+	if Rect2(Vector2.ZERO, size).grow(-20.0).has_point(p):
+		return Vector2.INF
+	return p
+
+
+func _chief_arrow(p: Vector2, vs: Vector2) -> void:
+	# šipka jezdí po okraji obrazovky, nahoře pod horní lištou
+	var inner := Rect2(Vector2(70, 140), vs - Vector2(140, 210))
+	var c := inner.get_center()
+	var dir := (p - c).normalized()
+	var kx := (inner.end.x - c.x if dir.x > 0.0 else inner.position.x - c.x) / dir.x if absf(dir.x) > 0.001 else 1.0e9
+	var ky := (inner.end.y - c.y if dir.y > 0.0 else inner.position.y - c.y) / dir.y if absf(dir.y) > 0.001 else 1.0e9
+	var at := c + dir * minf(kx, ky)
+	var pulse := 1.0 + 0.08 * sin(b.time_total * 8.0)
+	var tri := Art.xform(Art.poly([26, 0, -8, -18, -2, 0, -8, 18]), at + dir * 14.0, Vector2(pulse, pulse), dir.angle())
+	Art.shape(self, tri, Color("ffb310"), 3.0, 0.5)
+	Art.circle(self, at - dir * 14.0, 20.0, Color("6b3a17"), 3.0)
+	Art.icon_crown(self, at - dir * 14.0 + Vector2(0, 2), 12.0)
 
 
 func ci_level_badge(c: Vector2, lv: int) -> void:

@@ -44,6 +44,9 @@ var pickups: PickupSystem
 var director: Director
 var hazards: HazardSystem
 var boss: Boss = null
+## Náčelník v polovině kraje (null, když zrovna není).
+var chief: MiniBoss = null
+var chief_start := 0.0
 
 var stats := {}
 var level := 1
@@ -56,6 +59,7 @@ var ult := 0.0
 var revive_left := 0
 var pending_levelups := 0
 var pending_chests := 0
+var pending_chief := 0
 var arena_center := Vector2.ZERO
 var arena_radius := 0.0
 var shake_amt := 0.0
@@ -156,6 +160,9 @@ func _bake() -> void:
 		jobs.append({"key": "b:%s:%d" % [bid, t], "size": BossArt.SIZE, "fn": func(ci, tt): BossArt.draw(ci, bid, tt), "t": float(t)})
 	var fx_ids := ["slash", "slash_gold", "axe", "bolt", "bullet", "fireball", "meteor", "flask", "puddle", "shield", "wagon", "frost", "xp0", "xp1", "xp2", "coin", "jidlo", "magnet", "chest"]
 	fx_ids.append(EnemyDefs.BOSSES[bid].proj)
+	fx_ids.append("crown")
+	if region.has("chief"):
+		fx_ids.append(EnemyDefs.MINIBOSSES[region.chief].proj)
 	for id in region.enemies:
 		var p = EnemyDefs.ENEMIES[id].get("proj")
 		if p != null:
@@ -262,6 +269,18 @@ func _dev_tests() -> void:
 			overlay.show_settings()
 	elif "--bench" in args:
 		_bench()
+	elif "--test-miniboss" in args:
+		await get_tree().create_timer(1.5, false).timeout
+		spawn_chief()
+	elif "--test-chief-chest" in args or "--test-chief-chest=evo" in args:
+		weapons.add_weapon("kuse")
+		weapons.add_passive("kniha", 2)
+		if "--test-chief-chest=evo" in args:
+			for k in 7:
+				weapons.level_weapon("mec")
+			weapons.add_passive(Upgrades.WEAPONS["mec"].evo_with, 0)
+		await get_tree().create_timer(1.5, false).timeout
+		open_chest(true)
 
 
 ## Úsporná grafika: méně nepřátel naráz, bez stínů, méně částic a dekorací, jednodušší země.
@@ -299,7 +318,10 @@ func _process(delta: float) -> void:
 		print("[t=%5.1f] stav=%d lvl=%d hp=%d/%d zabito=%d nepřátel=%d zbraně=%s boss=%s" % [time_total + delta, state, level, int(player.hp), int(player.max_hp), kills, enemies.count(), str(weapons.weapons.map(func(w): return "%s%d" % [w.id, w.level])), ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-"])
 	if int(time_total * 0.5) != int((time_total + delta) * 0.5):
 		var st_names := ["načítání", "přežívání", "výběr karty", "pauza", "příchod bosse", "boss", "výhra", "prohra"]
-		Game.crumbs["battle"] = "%s %d:%02d, úroveň %d, nepřátel %d%s" % [st_names[state], int(elapsed) / 60, int(elapsed) % 60, level, enemies.count(), (", boss %d %%" % int(100.0 * maxf(0.0, boss.hp) / boss.max_hp)) if boss else ""]
+		var extra := (", boss %d %%" % int(100.0 * maxf(0.0, boss.hp) / boss.max_hp)) if boss else ""
+		if chief:
+			extra += ", náčelník %d %%" % int(100.0 * maxf(0.0, chief.hp) / chief.max_hp)
+		Game.crumbs["battle"] = "%s %d:%02d, úroveň %d, nepřátel %d%s" % [st_names[state], int(elapsed) / 60, int(elapsed) % 60, level, enemies.count(), extra]
 	time_total += delta
 	if state == State.PLAY or state == State.BOSS or state == State.BOSS_INTRO:
 		if state == State.PLAY:
@@ -311,6 +333,8 @@ func _process(delta: float) -> void:
 		enemies.update(delta)
 		if boss:
 			boss.boss_update(delta)
+		if chief:
+			chief.boss_update(delta)
 		weapons.update(delta)
 		projectiles.update(delta)
 		pickups.update(delta)
@@ -318,7 +342,7 @@ func _process(delta: float) -> void:
 		hazards.update(delta)
 		if state == State.PLAY and elapsed >= duration:
 			start_boss()
-		if pending_levelups > 0 or pending_chests > 0:
+		if pending_levelups > 0 or pending_chests > 0 or pending_chief > 0:
 			_open_choice()
 	_update_camera(delta)
 	chunk_t -= delta
@@ -498,7 +522,7 @@ func damage_enemy(e: Enemy, amount: float, tags: Array, dir: Vector2 = Vector2.Z
 	Sfx.play("hit", -14.0, 0.2, 0.05)
 	if e.hp <= 0.0:
 		if e.is_boss:
-			boss_killed()
+			(e as Boss).die()
 		else:
 			enemies.kill(e)
 
@@ -626,8 +650,12 @@ func add_xp(v: float) -> void:
 		pending_levelups += 1
 
 
-func open_chest() -> void:
-	pending_chests += 1
+## Truhla z elity nabídne lepší karty, truhla náčelníka evoluci nebo aspoň epickou kartu.
+func open_chest(from_chief: bool = false) -> void:
+	if from_chief:
+		pending_chief += 1
+	else:
+		pending_chests += 1
 	Sfx.play("chest")
 
 
@@ -638,7 +666,13 @@ func _open_choice() -> void:
 	state = State.LEVELUP
 	get_tree().paused = true
 	var cards: Array
-	if pending_chests > 0:
+	if pending_chief > 0:
+		pending_chief -= 1
+		Sfx.play("chest")
+		Game.vibrate(60)
+		cards = gen_chief_cards()
+		overlay.show_choice(cards, "chief")
+	elif pending_chests > 0:
 		pending_chests -= 1
 		Sfx.play("chest")
 		Game.vibrate(40)
@@ -665,7 +699,7 @@ func choose(card: Dictionary) -> void:
 	apply_card(card)
 	fx.burst(player.position, Color("ffd23f"), 14, 260.0, 6.0)
 	fx.explosion(player.position, 70.0, Color(1, 0.9, 0.4))
-	if pending_levelups > 0 or pending_chests > 0:
+	if pending_levelups > 0 or pending_chests > 0 or pending_chief > 0:
 		state = resume_state
 		_open_choice()
 		return
@@ -674,11 +708,58 @@ func choose(card: Dictionary) -> void:
 	get_tree().paused = false
 
 
-func reroll() -> Array:
+func reroll(source: String = "level") -> Array:
 	if rerolls <= 0:
 		return []
 	rerolls -= 1
-	return gen_cards(3, 0)
+	if source == "chief":
+		return gen_chief_cards()
+	return gen_cards(3, 1 if source == "chest" else 0)
+
+
+## Karty z truhly náčelníka: evoluce, pokud je k dispozici, jinak aspoň jedna epická.
+func gen_chief_cards() -> Array:
+	var cards := gen_cards(3, 1)
+	for c in cards:
+		if c.type == "evo":
+			return cards
+	for w in weapons.weapons:
+		if Upgrades.is_evolution(w.id):
+			continue
+		var def: Dictionary = Upgrades.WEAPONS[w.id]
+		if w.level >= Upgrades.WEAPON_MAX_LEVEL and weapons.passives.has(def.evo_with):
+			cards[0] = {"type": "evo", "id": def.evo, "from": w.id}
+			return cards
+	var best := -1
+	for i in cards.size():
+		var c: Dictionary = cards[i]
+		if c.type == "passive" and not Upgrades.PASSIVES[c.id].get("no_rarity", false):
+			if best < 0 or int(c.rarity) > int(cards[best].rarity):
+				best = i
+	if best >= 0:
+		cards[best].rarity = maxi(int(cards[best].rarity), 2)
+		return cards
+	var epic := _epic_passive()
+	if not epic.is_empty():
+		cards[cards.size() - 1] = epic
+	return cards
+
+
+## Předmět, který jde vylepšit (nebo nově vzít), jako epická karta.
+func _epic_passive() -> Dictionary:
+	var ids: Array = Upgrades.PASSIVES.keys()
+	ids.shuffle()
+	for id in ids:
+		var p: Dictionary = Upgrades.PASSIVES[id]
+		if p.get("no_rarity", false):
+			continue
+		var lv := weapons.passive_level(id)
+		if lv >= int(p.get("max", Upgrades.PASSIVE_MAX_LEVEL)):
+			continue
+		if lv == 0 and weapons.passives.size() >= Upgrades.MAX_PASSIVES:
+			continue
+		return {"type": "passive", "id": id, "level": lv + 1, "rarity": 2}
+	return {}
 
 
 func gen_cards(n: int, luck: int) -> Array:
@@ -803,12 +884,70 @@ func use_ult() -> void:
 		damage_enemy(boss, dmg * 3.0, ["blesk"], Vector2.ZERO, 0.0, false)
 
 
+# ---------------------------------------------------------------- náčelník
+
+## Náčelník kraje seskočí kousek od hrdiny (režisér ho pošle v polovině kraje).
+func spawn_chief() -> void:
+	if chief != null or not region.has("chief") or state != State.PLAY:
+		return
+	var cdef: Dictionary = EnemyDefs.MINIBOSSES[region.chief]
+	var a := randf() * TAU
+	var pos := player.position + Vector2(cos(a), sin(a)) * 330.0
+	ground_fx.circle_warn(pos, 110.0, 1.0, Color(1, 0.7, 0.1))
+	chief = MiniBoss.new()
+	entity_layer.add_child(chief)
+	chief.position = pos
+	chief.init_chief(self, region.chief, MiniBoss.HP_SHARE * boss_hp())
+	chief_start = time_total
+	banner("Náčelník: " + cdef.name, Color("ffb310"), cdef.title)
+	Sfx.play("boss", -6.0)
+	Game.note("náčelník: " + cdef.name)
+	if autoplay:
+		print("NÁČELNÍK %s, životy %d" % [cdef.name, int(chief.max_hp)])
+
+
+func chief_killed(mb: MiniBoss) -> void:
+	if not mb.alive:
+		return
+	kills += 1
+	ult = minf(1.0, ult + 0.25)
+	Game.add_stat("chiefs", 1)
+	Sfx.play("boom", -2.0)
+	Game.vibrate(120)
+	shake(14.0)
+	for i in 3:
+		fx.explosion(mb.position + Vector2(randf_range(-40, 40), randf_range(-40, 40)), 70.0 + i * 20.0, Color("ffd23f"))
+	pickups.drop("chest", mb.position, 2)
+	for i in 10:
+		pickups.drop("coin", mb.position, 1)
+	pickups.drop_xp(mb.position, 30)
+	banner("Náčelník poražen!", Color("6fcf2f"), "Seber truhlu s pokladem")
+	mb.vanish(0.6)
+	if chief == mb:
+		chief = null
+	if autoplay:
+		print("NÁČELNÍK poražen za %.0f s" % (time_total - chief_start))
+
+
 # ---------------------------------------------------------------- boss, výhra, prohra
+
+## Životy bosse podle úrovně hrdiny a počtu dobytých krajů (náčelník má jejich část).
+func boss_hp() -> float:
+	return (600.0 + 70.0 * level) * (1.0 + tier * 0.22)
+
 
 func start_boss() -> void:
 	state = State.BOSS_INTRO
 	enemies.flee_all()
 	projectiles.clear_hostile()
+	if chief:
+		# náčelník, kterého hrdina nestihl porazit, uteče
+		if autoplay:
+			print("NÁČELNÍK utekl, zbývalo %d %%" % int(100.0 * chief.hp / chief.max_hp))
+		fx.poof(chief.position)
+		chief.vanish(0.8)
+		chief = null
+	pickups.pull_chests()
 	arena_center = player.position
 	arena_radius = ARENA_R
 	ground_fx.arena_center = arena_center
@@ -826,7 +965,7 @@ func start_boss() -> void:
 	boss = Boss.new()
 	entity_layer.add_child(boss)
 	boss.position = arena_center + Vector2(0, -200)
-	boss.init_boss(self, region.boss, (600.0 + 70.0 * level) * (1.0 + tier * 0.22))
+	boss.init_boss(self, region.boss, boss_hp())
 	boss_start = time_total
 	state = State.BOSS
 
@@ -1044,10 +1183,11 @@ func _autopilot() -> Vector2:
 		var c := arena_center - pp
 		if c.length() > arena_radius * 0.6:
 			push += c.normalized() * 1.5
-	if boss and boss.alive:
-		var db := pp - boss.position
-		if db.length() < 230.0:
-			push += db.normalized() * 2.5
+	for big: Boss in [boss, chief]:
+		if big and big.alive:
+			var db := pp - big.position
+			if db.length() < 230.0:
+				push += db.normalized() * 2.5
 	for w in ground_fx.warns:
 		var dw: Vector2 = pp - w.pos
 		if dw.length() < w.r + 30.0:

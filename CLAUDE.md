@@ -25,6 +25,8 @@ Obecný návrh survivor hry (mechaniky, stat systém, milníky) je v `docs/survi
 
 `Battle` (scripts/battle/battle.gd) vlastní vrstvy světa a systémy. Pořadí v `_process`: vstup → hráč → nepřátelé (+ boss) → zbraně → střely → sběr → režisér. Pauza (výběr karet, pauza) = `get_tree().paused`; overlaye mají `PROCESS_MODE_ALWAYS`. Útoky bosse jsou korutiny s `create_timer(t, false)` (respektují pauzu).
 
+Náčelník (`MiniBoss`, scripts/battle/mini_boss.gd) dědí z `Boss` a sdílí jeho útoky. Má `is_boss` i `chief`, od dopadu žije v `EnemyManager.list` (zbraně ho najdou samy), ale pohyb si řídí sám přes `Battle._process`. Po smrti nebo útěku (`vanish`) se uzel uvolní až za 3 s, aby rozběhnuté korutiny útoků doběhly. Útoky nepřesouvej do statických funkcí: korutinu na instanci Godot po uvolnění uzlu neprobudí, statická by sáhla na smazaný objekt.
+
 ## Testování
 
 ```bash

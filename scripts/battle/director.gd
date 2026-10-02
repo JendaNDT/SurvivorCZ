@@ -1,7 +1,8 @@
 extends Node
 class_name Director
 ## Režisér vln: každou sekundu dostane „body hrozby“ a utrácí je za skupiny
-## nepřátel v různých formacích. Ke konci kraje přitlačí a pošle elity.
+## nepřátel v různých formacích. Ke konci kraje přitlačí a pošle elity,
+## v polovině kraje pošle náčelníka.
 
 var b: Battle
 var budget := 0.0
@@ -14,7 +15,8 @@ func init(battle: Battle) -> void:
 	events = [
 		{"at": 0.22, "kind": "ring", "done": false},
 		{"at": 0.38, "kind": "elite", "done": false},
-		{"at": 0.55, "kind": "ring", "done": false},
+		{"at": 0.50, "kind": "miniboss", "done": false},
+		{"at": 0.60, "kind": "ring", "done": false},
 		{"at": 0.70, "kind": "elite", "done": false},
 		{"at": 0.84, "kind": "final", "done": false},
 		{"at": 0.90, "kind": "ring", "done": false},
@@ -135,6 +137,8 @@ func _event(kind: String, f: float) -> void:
 			if e:
 				b.banner("Elita: " + e.def.name, Color("ffd23f"))
 				Sfx.play("warn", -4.0)
+		"miniboss":
+			b.spawn_chief()
 		"final":
 			budget += 30.0 + b.tier * 4.0
 			b.banner("Poslední vlna!", Color("ff8a2a"))

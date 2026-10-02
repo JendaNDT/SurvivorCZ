@@ -10,7 +10,7 @@ Plán pokrývá všechny navržené vylepšení: nástrahy a minibosse v krajíc
 | --- | --- | --- | --- |
 | M1 ✅ | Telefon a nastavení | úsporná grafika, FPS, vibrace, hlasitost hudby a efektů zvlášť, leváci | hotovo (verze 1.1.0) |
 | M2 ✅ | Nástrahy krajů | 14 mechanik, každý kraj se hraje jinak | hotovo (verze 1.2.0) |
-| M3 | Minibossové | náčelník v polovině každého kraje | 1 session |
+| M3 ✅ | Minibossové | náčelník v polovině každého kraje | hotovo (verze 1.3.0) |
 | M4 | Pocit z boje | nástup bosse, krátké zastavení při zásahu, prach, smrti bossů | 1 session |
 | M5 | Věděl jsi? a Kniha | fakta o krajích, bestiář, odznaky | 1 session |
 | M6 | Hudba podle oblasti | dechovka, cimbál, hory, hutě, Praha | 1 session |
@@ -200,6 +200,12 @@ Malý štítek v HUD pod ukazateli: FPS a počet nepřátel. Zapíná se v nasta
 ## M3 Minibossové
 
 **Cíl:** v polovině kraje přijde silný náčelník, aby souboj neměl hluché místo.
+
+**Stav: hotovo ve verzi 1.3.0.** Proti plánu:
+- Útoky zůstaly v `boss.gd` a `MiniBoss` je dědí (žádný `boss_attacks.gd`). Útoky jsou korutiny na instanci: když se uzel uvolní, Godot je neprobudí. Sdílené statické funkce by po uvolnění sáhly na smazaný objekt, a to je přesně typ chyby, který na telefonu shodí hru.
+- Náčelník má **25 %** životů bosse, ne 35 %. Zbraně se dělí mezi něj a hordu, takže s 35 % trval souboj s automatem 30–67 s. Útoky má na 60 % síly bosse. Na Zlínsku na nejvyšší obtížnosti bral hrdinovi 110 ze 144 životů za 10 s.
+- Navíc: zlatá šipka k náčelníkovi mimo obrazovku, náčelník uteče, když přijde boss, nástrahy mu ubližují (polovina toho co elitě, nejvýš jednou za sekundu), pásy a vítr ho unášejí. Truhla náčelníka je větší a přehození karet v ní zase nabídne evoluci nebo epickou kartu. Kresba koruny sedí podle nejvyšších pixelů kresby, u divočáka je ručně posunutá na hlavu. Galerie má stranu 8 s náčelníky.
+- Test: `--test-miniboss`, `--test-chief-chest` a `--test-chief-chest=evo`. Simulace všech 14 krajů po dvou bitvách: automat vyhrál 23 z 28 (před M3 11 ze 14), náčelníka porazil v 27 bitvách z 28, obvykle za 20–50 s. Ladicí režim: útěk náčelníka a 3 bitvy s přechody na mapu bez jediné chyby.
 
 - Režisér (`scripts/battle/director.gd`): nová událost `miniboss` v 50 % času (místo dnešního obklíčení v 55 % se obklíčení posune na 60 %).
 - **Kód:** útoky bosse se vytáhnou z `boss.gd` do sdíleného `scripts/battle/boss_attacks.gd`, aby je mohl použít i miniboss. `MiniBoss` (dědí z `Boss`) má jen dva útoky, žádné fáze, žádnou arénu a 35 % životů bosse.

@@ -5,7 +5,7 @@ class_name FxArt
 const SIZES := {
 	"slash": Vector2(260, 260), "slash_gold": Vector2(260, 260), "frost": Vector2(220, 220), "puddle": Vector2(150, 110),
 	"wagon": Vector2(110, 90), "shield": Vector2(60, 60), "meteor": Vector2(110, 80), "chest": Vector2(90, 80),
-	"jidlo": Vector2(80, 64), "magnet": Vector2(64, 64), "xp2": Vector2(44, 52),
+	"jidlo": Vector2(80, 64), "magnet": Vector2(64, 64), "xp2": Vector2(44, 52), "crown": Vector2(64, 52),
 }
 
 
@@ -278,3 +278,18 @@ static func _chest(ci: CanvasItem, t: float) -> void:
 	Art.circle(ci, Vector2(0, -7), 2.5, Art.OUTLINE, 0.0)
 	if t > 0.5:
 		Art.shape(ci, Art.star(Vector2(26, -32), 7, 3, 4), Color("fffbe0"), 1.5, 0.3)
+
+
+## Koruna náčelníka (sedí na hlavě nepřítele, viz MiniBoss.dress).
+static func _crown(ci: CanvasItem, _t: float) -> void:
+	var pts := Art.poly([-22, 14, -24, -8, -12, 2, 0, -14, 12, 2, 24, -8, 22, 14])
+	Art.shape(ci, pts, Art.GOLD, 3.0)
+	# obruč
+	var band := Art.rrect(Rect2(-23, 4, 46, 11), 3)
+	Art.shape(ci, band, Art.GOLD_DARK.lightened(0.15), 2.5, 0.6)
+	for p: Vector2 in [Vector2(-24, -10), Vector2(0, -17), Vector2(24, -10)]:
+		Art.circle(ci, p, 4.0, Color("fff2b0"), 2.5)
+	Art.circle(ci, Vector2(0, 9.5), 3.6, Color("ff4d6d"), 2.0)
+	for s: int in [-1, 1]:
+		Art.circle(ci, Vector2(s * 13, 9.5), 2.8, Color("3fa8ff") if s < 0 else Color("6fcf2f"), 2.0)
+	Art.shine(ci, Vector2(-11, -2), 5, 2.5, 0.6, -0.6)

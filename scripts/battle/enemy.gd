@@ -16,6 +16,8 @@ var xp := 1
 var elite := false
 var mini := false
 var is_boss := false
+## Náčelník (MiniBoss): is_boss platí taky, ale náčelník žije v seznamu nepřátel.
+var chief := false
 var alive := true
 
 var vel := Vector2.ZERO

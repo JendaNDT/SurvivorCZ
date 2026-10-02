@@ -85,9 +85,12 @@ func _title(text: String, col: Color, y: float, sub: String = "") -> void:
 
 func show_choice(cards: Array, source: String) -> void:
 	_clear()
-	var chest := source == "chest"
-	_title("TRUHLA!" if chest else "NOVÁ ÚROVEŇ!", Color("b25cff") if chest else Color("3fa8ff"), 8.0,
-		"Vyber si jedno vylepšení" if not chest else "Poklad z elity – vyber si odměnu")
+	if source == "chief":
+		_title("TRUHLA NÁČELNÍKA!", Color("e8a010"), 8.0, "Poklad náčelníka – vyber si odměnu")
+	elif source == "chest":
+		_title("TRUHLA!", Color("b25cff"), 8.0, "Poklad z elity – vyber si odměnu")
+	else:
+		_title("NOVÁ ÚROVEŇ!", Color("3fa8ff"), 8.0, "Vyber si jedno vylepšení")
 	_cards(cards)
 	var row_y := size.y - 92.0
 	var rr := CCButton.make("Přehodit", Color("3fb2ff"), Vector2(230, 70), 26)
@@ -97,7 +100,7 @@ func show_choice(cards: Array, source: String) -> void:
 	rr.disabled = b.rerolls <= 0
 	rr.position = Vector2(size.x * 0.5 - 250, row_y)
 	rr.pressed.connect(func():
-		var nc := b.reroll()
+		var nc := b.reroll(source)
 		if not nc.is_empty():
 			show_choice(nc, source))
 	content.add_child(rr)

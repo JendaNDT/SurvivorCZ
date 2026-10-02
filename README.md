@@ -1,6 +1,6 @@
 # Dobyj Česko!
 
-Survivor strategie pro Android postavená v **Godotu 4.5**. Hrdina si postupně podmaňuje všech 14 krajů Česka. V každém kraji na něj ze všech stran útočí vlny nepřátel, kteří patří k danému kraji. Hrdina útočí sám, hráč ho jen vede joystickem, sbírá elixír (zkušenosti) a na každé nové úrovni si vybírá jedno ze tří vylepšení. Kraj je dobytý, když hrdina přežije do konce časomíry a porazí bosse.
+Survivor strategie pro Android postavená v **Godotu 4.5**. Hrdina si postupně podmaňuje všech 14 krajů Česka. V každém kraji na něj ze všech stran útočí vlny nepřátel, kteří patří k danému kraji. Hrdina útočí sám, hráč ho jen vede joystickem, sbírá elixír (zkušenosti) a na každé nové úrovni si vybírá jedno ze tří vylepšení. Kraj je dobytý, když hrdina přežije do konce časomíry a porazí bosse. V polovině kraje přijde náčelník.
 
 Vzhled se inspiruje kresleným stylem Clash of Clans: syté barvy, silné tmavé obrysy, stínování „do 3D“, lesklá zaoblená tlačítka, dřevěné panely s pergamenem a výrazné písmo s obrysem. **Veškerá grafika vzniká v kódu.** Hra neobsahuje jediný obrázek ani grafiku převzatou odjinud.
 
@@ -22,6 +22,7 @@ APK je podepsané „sideload“ klíčem z `android/sideload.keystore`, takže 
 - **Hrom** (žluté tlačítko): ultimátka, nabíjí se zabíjením. Zasáhne blesky všechny nepřátele na obrazovce.
 - **Elixír** (růžové kapky) dává zkušenosti. Na každé nové úrovni vybíráš 1 ze 3 karet: novou zbraň, vyšší úroveň zbraně, nebo pasivní předmět. Karty můžeš **přehodit** (2× za kraj, víc se dá koupit) nebo **přeskočit** za trochu zlata a života.
 - **Elity** (nepřátelé se zlatou září) přicházejí ve 38 % a 70 % času a padá z nich **truhla** s lepší odměnou.
+- **Náčelník** přijde v polovině kraje. Je to hlavní nepřítel kraje ve dvojnásobné velikosti, se zlatou korunou, jménem a ukazatelem životů nad hlavou. Používá dva útoky bosse, které se předem ukážou na zemi. Když je mimo obrazovku, ukáže na něj zlatá šipka. Po porážce z něj padne **truhla náčelníka**: nabídne evoluci, když na ni má hrdina zbraň i předmět, jinak aspoň jednu epickou kartu. Kdo náčelníka nestihne porazit do příchodu bosse, tomu uteče.
 - **Svíčková** doplní třetinu života, **magnet** přitáhne všechen elixír.
 - Když časomíra doběhne, kolem hrdiny vyroste palisáda a přijde **boss**. Má tři fáze a jeho útoky se předem ukážou červeně na zemi.
 - **Hvězdy:** 1 za dobytí, 2 když skončíš s aspoň polovinou životů, 3 když bosse porazíš do 60 sekund.
@@ -43,24 +44,24 @@ Ozubené kolečko na mapě nebo **Nastavení** v pauze:
 
 Když se první bitva seká (pod 40 snímků za sekundu), hra po návratu na mapu sama nabídne úspornou grafiku.
 
-## Kraje, nepřátelé a bossové
+## Kraje, nepřátelé, náčelníci a bossové
 
-| Kraj | Prostředí | Nepřátelé | Boss |
-| --- | --- | --- | --- |
-| Karlovarský | lázeňský park, kolonády, prameny | lázeňský host, lázeňská oplatka, porcelánová konvice | **Vřídelní obr** |
-| Plzeňský | pole, sudy, Šumava | pivní pěna (dělí se), valivý sud, chmelová šiška | **Pivní král** |
-| Ústecký | uhelný důl, pískovcové skály | havíř, uhelný golem, dynamit (vybuchne) | **Kolesové rypadlo** |
-| Liberecký | jizerský les, krystaly skla | skleněná baňka, bižuterní brouk, sklář (střílí) | **Ještěd** (vysílač, který ožil) |
-| Královéhradecký | zasněžené Krkonoše | sněhová koule, sněhulák, horský skřítek | **Krakonoš** |
-| Pardubický | dostihová louka, perníková chaloupka | perníček, dostihový kůň (nabíhá), Semtex | **Perníková ježibaba** |
-| Středočeský | hrady, kostnice, Blaník | kostlivec z kostnice, blanický rytíř, lučištník | **Velitel blanických rytířů** |
-| Praha | dlažba Starého Města | turista se selfie tyčí, pražský holub, Golem | **Pražský orloj** |
-| Jihočeský | rybníky, rákosí, vrby | kapr, rak, vodník | **Král vodníků** (dušičky v hrníčcích) |
-| Vysočina | hluboký les, houby, žula | brambora, divočák, muchomůrka | **Hřibí král** |
-| Jihomoravský | vinice, sklepy | hrozen (dělí se), netopýr z Macochy, vinař | **Brněnský drak** |
-| Olomoucký | Haná, pole, kašny | tvarůžek, Hanák, duch Praděda | **Tvarůžkový král** |
-| Zlínský | Valašsko, roubenky, švestky | švestka, baťovka, Valach s valaškou | **Obří bota** |
-| Moravskoslezský | ocelárny, struska, komíny | hutník, rozžhavený ingot, tatrovka | **Vysokopecní titán** |
+| Kraj | Prostředí | Nepřátelé | Náčelník | Boss |
+| --- | --- | --- | --- | --- |
+| Karlovarský | lázeňský park, kolonády, prameny | lázeňský host, lázeňská oplatka, porcelánová konvice | Lázeňský primář | **Vřídelní obr** |
+| Plzeňský | pole, sudy, Šumava | pivní pěna (dělí se), valivý sud, chmelová šiška | Mistr sládek | **Pivní král** |
+| Ústecký | uhelný důl, pískovcové skály | havíř, uhelný golem, dynamit (vybuchne) | Předák havířů | **Kolesové rypadlo** |
+| Liberecký | jizerský les, krystaly skla | skleněná baňka, bižuterní brouk, sklář (střílí) | Mistr sklář | **Ještěd** (vysílač, který ožil) |
+| Královéhradecký | zasněžené Krkonoše | sněhová koule, sněhulák, horský skřítek | Obří sněhulák | **Krakonoš** |
+| Pardubický | dostihová louka, perníková chaloupka | perníček, dostihový kůň (nabíhá), Semtex | Žokej šampion | **Perníková ježibaba** |
+| Středočeský | hrady, kostnice, Blaník | kostlivec z kostnice, blanický rytíř, lučištník | Rytíř praporečník | **Velitel blanických rytířů** |
+| Praha | dlažba Starého Města | turista se selfie tyčí, pražský holub, Golem | Velký Golem | **Pražský orloj** |
+| Jihočeský | rybníky, rákosí, vrby | kapr, rak, vodník | Obří kapr | **Král vodníků** (dušičky v hrníčcích) |
+| Vysočina | hluboký les, houby, žula | brambora, divočák, muchomůrka | Kňour | **Hřibí král** |
+| Jihomoravský | vinice, sklepy | hrozen (dělí se), netopýr z Macochy, vinař | Starý vinař | **Brněnský drak** |
+| Olomoucký | Haná, pole, kašny | tvarůžek, Hanák, duch Praděda | Starosta Hané | **Tvarůžkový král** |
+| Zlínský | Valašsko, roubenky, švestky | švestka, baťovka, Valach s valaškou | Valašský hajtman | **Obří bota** |
+| Moravskoslezský | ocelárny, struska, komíny | hutník, rozžhavený ingot, tatrovka | Mistr hutník | **Vysokopecní titán** |
 
 Každý kraj má vlastní texturu země (tráva s cestičkami, dlažba, hlína, sníh, les, vinice, plech, pole, louka) a vlastní dekorace.
 
@@ -85,7 +86,7 @@ Každý kraj má jednu nástrahu. Ublíží nepřátelům stejně jako hrdinovi 
 | Zlínský | Padající švestky | Švestka hrdinu vyléčí, nepřítel na ní uklouzne. |
 | Moravskoslezský | Žhavé praskliny | Z praskliny vytryskne železo a chvíli pak pálí. |
 
-V aréně bosse běží jen počasí (mlha, vánice, vítr) a terén (pásy, rybníky), ostatní nástrahy se vypnou.
+V aréně bosse běží jen počasí (mlha, vánice, vítr) a terén (pásy, rybníky), ostatní nástrahy se vypnou. Náčelníkovi nástraha vezme polovinu toho co elitě (nejvýš jednou za sekundu), pásy a vítr ho unášejí, kapra ve vodě zrychlí.
 
 ## Zbraně a evoluce
 
@@ -124,9 +125,9 @@ icon.svg                   ikona aplikace
 shaders/                   země v bitvě, moře a tráva na mapě
 scripts/main.gd            přepínání mapa ↔ bitva ↔ závěr, přechod s mraky
 scripts/autoload/          Art (kreslení), Baker (pečení textur), Game (uložení postupu), Sfx (zvuky)
-scripts/data/              kraje, nepřátelé a bossové, zbraně a vylepšení, tvary krajů
+scripts/data/              kraje, nepřátelé, náčelníci a bossové, zbraně a vylepšení, tvary krajů
 scripts/art/               kresby hrdiny, nepřátel, bossů, dekorací, střel a ikon
-scripts/battle/            bitva: hráč, nepřátelé, zbraně, střely, sběr, režisér vln, boss, efekty
+scripts/battle/            bitva: hráč, nepřátelé, zbraně, střely, sběr, režisér vln, boss a náčelník, efekty
 scripts/map/               mapa Česka, karta kraje, Zbrojnice, úvod
 scripts/ui/                tlačítka, posuvníky, přepínače, deska nastavení, HUD, dotykové ovládání, karty vylepšení, okna v bitvě, závěr
 scripts/dev/, scenes/dev/  galerie kreseb pro kontrolu grafiky (do APK se nebalí)
@@ -164,8 +165,10 @@ godot --path . -- --battle=PHA --bench --quality=low         # plný počet nep�
 godot --path . -- --screen=settings --taps="485,229>700,229@2"   # nastavení a simulované tažení prstem
 godot --path . -- --battle=KVK --left-handed --show-fps      # nastavení jen pro jedno spuštění
 godot --path . -- --battle=PHA --hazard-now                  # nástraha kraje hned a pak každé 3 s
+godot --path . -- --battle=VYS --test-miniboss               # náčelník hned po startu
+godot --path . -- --battle=KVK --test-chief-chest=evo        # truhla náčelníka (bez =evo s epickou kartou)
 godot --path . --fixed-fps 30 -- --soak=20 --autoplay --duration=10   # zátěžový test: 20 bitev za sebou, vypisuje paměť
 godot --path . -- --screen=crash                             # ukázka hlášení o pádu
 godot --path . res://scenes/dev/gallery.tscn -- --page=7     # kresby nástrah
-godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy)
+godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy, 8 náčelníci)
 ```

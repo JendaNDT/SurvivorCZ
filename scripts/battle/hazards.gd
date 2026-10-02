@@ -188,12 +188,22 @@ func _drain(v: float, col: Color) -> void:
 		b.hit_player(1.0, p.position, true)
 
 
-## Běžného nepřítele nástraha zabije, elitě vezme část životů, bosse nechá být.
+## Běžného nepřítele nástraha zabije, elitě vezme část životů, náčelníkovi
+## polovinu toho (nejvýš jednou za sekundu), bosse nechá být.
 func _smash(e: Enemy, src: Vector2, drops: bool = true) -> void:
-	if not e.alive or e.is_boss:
+	if not e.alive or (e.is_boss and not e.chief):
 		return
 	var dir := (e.position - src).normalized()
-	if e.elite:
+	if e.chief:
+		if b.time_total - float(e.hit_cd.get("hazard", -99.0)) < 1.0:
+			return
+		e.hit_cd["hazard"] = b.time_total
+		var cdmg: float = e.max_hp * float(d.get("elite", 0.3)) * 0.5
+		e.hp -= cdmg
+		e.flash = 0.1
+		b.fx.number(e.position + Vector2(0, -e.r - 6), cdmg, true, Color("ffb030"))
+		# smrt řeší náčelník sám v příštím snímku (MiniBoss.die)
+	elif e.elite:
 		var dmg: float = e.max_hp * float(d.get("elite", 0.3))
 		e.hp -= dmg
 		e.flash = 0.1
@@ -222,7 +232,7 @@ func speed_mult(pos: Vector2, e: Enemy) -> float:
 				return 1.0 - float(d.enemy_slow if e else d.player_slow) * weather_in
 		"rybniky":
 			if _pond_at(pos) != null:
-				if e and e.id in d.swimmers:
+				if e and (e.id in d.swimmers or e.def.get("base", "") in d.swimmers):
 					return 1.0 + float(d.swim_bonus)
 				return 1.0 - float(d.slow)
 		"katapult":
@@ -789,9 +799,10 @@ func _update_clouds(delta: float) -> void:
 			if b.player.position.distance_to(c.pos) < c.r:
 				b.hit_player(b.player.max_hp * float(d.dmg) * (1.0 + 0.02 * b.tier), c.pos)
 			for e in b.enemies.query(c.pos, c.r):
-				if not e.is_boss:
+				if not e.is_boss or e.chief:
 					e.poison_t = 2.0
-					e.poison_dps = maxf(e.poison_dps, e.max_hp * (0.25 if e.elite else 0.6))
+					var share := 0.03 if e.chief else (0.25 if e.elite else 0.6)
+					e.poison_dps = maxf(e.poison_dps, e.max_hp * share)
 		if c.life <= 0.0:
 			clouds.erase(c)
 
@@ -912,9 +923,9 @@ func _burn_crack(g: Dictionary) -> void:
 		_drain(b.player.max_hp * float(d.trail_dmg), Color("ff8a3a"))
 	for i in range(0, pts.size(), 2):
 		for e in b.enemies.query(pts[i], w):
-			if not e.is_boss:
+			if not e.is_boss or e.chief:
 				e.burn_t = 2.0
-				e.burn_dps = maxf(e.burn_dps, e.max_hp * 0.35)
+				e.burn_dps = maxf(e.burn_dps, e.max_hp * (0.02 if e.chief else 0.35))
 
 
 # ---------------------------------------------------------------- počasí

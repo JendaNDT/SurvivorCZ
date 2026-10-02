@@ -1,7 +1,8 @@
 extends Node2D
 ## Vývojářská galerie: upeče a zobrazí všechny kresby (kontrola grafiky).
 ## Spuštění: godot --path . res://scenes/dev/gallery.tscn -- [--shot=soubor.png] [--page=N]
-## Stránky: 0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy krajů
+## Stránky: 0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy krajů,
+## 8 náčelníci (nepřítel s korunou)
 
 var page := 0
 var zoom := 1.0
@@ -37,6 +38,15 @@ func _ready() -> void:
 				var key: String = "h_%s%s" % [id, "" if t == 0.0 else "1"]
 				jobs.append({"key": key, "size": HazardArt.size_of(id), "fn": func(ci, tt): HazardArt.draw(ci, id, tt), "t": t, "origin": HazardArt.origin_of(id)})
 				ids.append(key)
+	elif page == 8:
+		spacing = 175.0
+		jobs.append({"key": "fx:crown", "size": FxArt.size_of("crown"), "fn": func(ci, t): FxArt.draw(ci, "crown", t)})
+		for cid in EnemyDefs.MINIBOSSES.keys():
+			var base: String = EnemyDefs.MINIBOSSES[cid].base
+			var sz: float = EnemyDefs.get_enemy(base).size
+			var key: String = "c_" + base
+			jobs.append({"key": key, "size": Vector2(sz, sz), "fn": func(ci, t): EnemyArt.draw(ci, base, t), "t": 0.0})
+			ids.append(key)
 	elif page == 6:
 		spacing = 92.0
 		var fx := ["slash", "axe", "bolt", "bullet", "fireball", "meteor", "flask", "puddle", "shield", "wagon", "frost", "kapka", "pena", "uhel", "strep", "signal", "snehova", "srdce", "sip", "hvezda", "hrnicek", "spora", "hrozen", "ohen", "mlha", "syr", "hrebik", "jiskra", "xp0", "xp1", "xp2", "coin", "jidlo", "magnet", "chest"]
@@ -76,6 +86,9 @@ func _ready() -> void:
 		s.scale *= zoom
 		if page == 7:
 			s.position.y += 70.0 * zoom
+		if page == 8:
+			MiniBoss.dress(s, k.substr(2))
+			s.position.y += 30.0 * zoom
 		add_child(s)
 		var l := Label.new()
 		l.text = k.substr(2)

@@ -133,7 +133,7 @@ func default_data() -> Dictionary:
 		"upgrades": {},
 		"intro_seen": false,
 		"finished": false,
-		"stats": {"kills": 0, "runs": 0, "defeats": 0, "bosses": 0},
+		"stats": {"kills": 0, "runs": 0, "defeats": 0, "bosses": 0, "chiefs": 0},
 		"settings": DEFAULT_SETTINGS.duplicate(),
 		"perf_checked": false,
 	}

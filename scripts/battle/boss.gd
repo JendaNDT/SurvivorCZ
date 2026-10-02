@@ -1,6 +1,9 @@
 extends Enemy
 class_name Boss
 ## Boss kraje: tři fáze, útoky ohlášené na zemi předem (červené kruhy a čáry).
+## Z Bosse dědí i náčelník (MiniBoss), takže útoky (_slam, _rain, …) jsou společné.
+## Útoky jsou korutiny na instanci: když se uzel uvolní, Godot je už neprobudí
+## a nesáhnou na smazaný objekt (sdílené statické funkce by to hlídat nemohly).
 
 var b: Battle
 var bdef: Dictionary
@@ -11,6 +14,9 @@ var last_attack := ""
 var charge_vel := Vector2.ZERO
 var charge_t := 0.0
 var intro_t := 1.2
+var intro_len := 1.2
+## Prodleva mezi útoky v první fázi.
+var attack_gap := 2.6
 var phase_names := ["", "Fáze 2!", "Poslední fáze!"]
 
 
@@ -40,15 +46,11 @@ func boss_update(delta: float) -> void:
 	var dist := to_p.length()
 	if intro_t > 0.0:
 		intro_t -= delta
-		var k := clampf(1.0 - intro_t / 1.2, 0.0, 1.0)
+		var k := clampf(1.0 - intro_t / intro_len, 0.0, 1.0)
 		body.position.y = -400.0 * pow(1.0 - k, 2)
 		shadow.position = position + Vector2(0, r * 1.15)
 		if intro_t <= 0.0:
-			b.shake(18.0)
-			Sfx.play("boom")
-			b.fx.explosion(position + Vector2(0, 40), 140.0, Color("c9a06a"))
-			var wv := b.ground_fx.shockwave(position, 520.0, 380.0, 26.0, Color(1, 0.8, 0.5))
-			_track_wave(wv, 14.0)
+			_landed()
 		return
 	# statusy (zpomalení, hoření)
 	if slow_t > 0.0:
@@ -60,9 +62,46 @@ func boss_update(delta: float) -> void:
 		poison_t -= delta
 		hp -= poison_dps * delta
 	if hp <= 0.0:
-		b.boss_killed()
+		die()
 		return
-	# fáze podle zbývajících životů
+	_check_phase()
+	# pohyb
+	if charge_t > 0.0:
+		charge_t -= delta
+		position += charge_vel * delta
+		if charge_t <= 0.0:
+			busy = false
+	elif not busy:
+		if dist > 150.0:
+			position += to_p / dist * _move_speed(dist) * delta
+		attack_t -= delta
+		if attack_t <= 0.0:
+			_start_attack()
+	_after_move(delta)
+	position = b.clamp_to_arena(position, r)
+	if dist < r + b.player.r:
+		b.hit_player(dmg, position)
+	if absf(to_p.x) > 6.0:
+		face = 1.0 if to_p.x > 0.0 else -1.0
+	animate(delta, not busy)
+	shadow.position = position + Vector2(0, r * 1.15)
+
+
+## Dopad po příchodu shora.
+func _landed() -> void:
+	b.shake(18.0)
+	Sfx.play("boom")
+	b.fx.explosion(position + Vector2(0, 40), 140.0, Color("c9a06a"))
+	var wv := b.ground_fx.shockwave(position, 520.0, 380.0, 26.0, Color(1, 0.8, 0.5))
+	_track_wave(wv, 14.0)
+
+
+func die() -> void:
+	b.boss_killed()
+
+
+## Fáze podle zbývajících životů.
+func _check_phase() -> void:
 	var want_phase := 0 if hp > max_hp * 0.66 else (1 if hp > max_hp * 0.33 else 2)
 	if want_phase > phase:
 		phase = want_phase
@@ -72,25 +111,19 @@ func boss_update(delta: float) -> void:
 		var wv := b.ground_fx.shockwave(position, 600.0, 420.0, 22.0, Color(1, 0.4, 0.3))
 		_track_wave(wv, 10.0)
 		attack_t = 1.0
-	# pohyb
-	if charge_t > 0.0:
-		charge_t -= delta
-		position += charge_vel * delta
-		if charge_t <= 0.0:
-			busy = false
-	elif not busy:
-		if dist > 150.0:
-			position += to_p / dist * speed_now() * (1.0 + phase * 0.15) * delta
-		attack_t -= delta
-		if attack_t <= 0.0:
-			_start_attack()
-	position = b.clamp_to_arena(position, r)
-	if dist < r + b.player.r:
-		b.hit_player(dmg, position)
-	if absf(to_p.x) > 6.0:
-		face = 1.0 if to_p.x > 0.0 else -1.0
-	animate(delta, not busy)
-	shadow.position = position + Vector2(0, r * 1.15)
+
+
+func _move_speed(_dist: float) -> float:
+	return speed_now() * (1.0 + phase * 0.15)
+
+
+func _after_move(_delta: float) -> void:
+	pass
+
+
+## Násobek poškození útoků.
+func power() -> float:
+	return b.boss_dmg_mult()
 
 
 func _attacks() -> Array:
@@ -106,7 +139,7 @@ func _start_attack() -> void:
 	if pick == last_attack and list.size() > 1:
 		pick = list[(list.find(pick) + 1) % list.size()]
 	last_attack = pick
-	attack_t = maxf(1.2, 2.6 - phase * 0.5)
+	attack_t = maxf(1.2, attack_gap - phase * 0.5)
 	busy = true
 	match pick:
 		"slam": await _slam()
@@ -114,10 +147,12 @@ func _start_attack() -> void:
 		"radial": await _radial()
 		"spiral": await _spiral()
 		"charge": await _charge()
+		"charge2": await _charge2()
 		"summon": await _summon()
 		"puddle": await _puddle()
 		"shockwave": await _shockwave()
-	if pick != "charge":
+	# výpad uvolní bosse sám, až doběhne (charge_t v boss_update)
+	if pick != "charge" and pick != "charge2":
 		busy = false
 
 
@@ -137,7 +172,7 @@ func _slam() -> void:
 		var target: Vector2 = b.player.position + b.player.move_dir * 60.0
 		var cb := func(pos: Vector2, rr: float) -> void:
 			if b.player.position.distance_to(pos) < rr + b.player.r * 0.5:
-				b.hit_player(22.0 * b.boss_dmg_mult(), pos, true)
+				b.hit_player(22.0 * power(), pos, true)
 			b.fx.explosion(pos, rr, Color("c9a06a"))
 			b.shake(9.0)
 			Sfx.play("boom", -4.0)
@@ -156,7 +191,7 @@ func _rain() -> void:
 		p = b.clamp_to_arena(p, 10.0)
 		var cb := func(pos: Vector2, rr: float) -> void:
 			if b.player.position.distance_to(pos) < rr + b.player.r * 0.4:
-				b.hit_player(14.0 * b.boss_dmg_mult(), pos, true)
+				b.hit_player(14.0 * power(), pos, true)
 			b.fx.explosion(pos, rr, _proj_color())
 			Sfx.play("hit", -6.0)
 		b.ground_fx.circle_warn(p, 62.0, 0.95, _proj_color().lerp(Color(1, 0.2, 0.1), 0.5), cb)
@@ -172,7 +207,7 @@ func _radial() -> void:
 		var off := randf() * TAU
 		for i in n:
 			var a := off + TAU * i / n
-			b.projectiles.enemy_shot(bdef.proj, position, Vector2(cos(a), sin(a)) * (210.0 + phase * 25.0), 9.0 * b.boss_dmg_mult())
+			b.projectiles.enemy_shot(bdef.proj, position, Vector2(cos(a), sin(a)) * (210.0 + phase * 25.0), 9.0 * power())
 		Sfx.play("enemy_shot", -2.0)
 		await _wait(0.45)
 
@@ -185,7 +220,7 @@ func _spiral() -> void:
 			return
 		for k in 2 + int(phase >= 2):
 			var aa := a + TAU * k / (2.0 + float(phase >= 2))
-			b.projectiles.enemy_shot(bdef.proj, position, Vector2(cos(aa), sin(aa)) * 230.0, 8.0 * b.boss_dmg_mult())
+			b.projectiles.enemy_shot(bdef.proj, position, Vector2(cos(aa), sin(aa)) * 230.0, 8.0 * power())
 		a += 0.33
 		if i % 4 == 0:
 			Sfx.play("enemy_shot", -10.0)
@@ -193,6 +228,7 @@ func _spiral() -> void:
 
 
 func _charge() -> void:
+	busy = true
 	var dir: Vector2 = (b.player.position - position).normalized()
 	b.ground_fx.line_warn(position, dir, 640.0, r * 1.8, 0.9)
 	Sfx.play("warn", -6.0)
@@ -206,6 +242,16 @@ func _charge() -> void:
 	charge_vel = dir * 820.0
 	charge_t = 0.78
 	Sfx.play("dash")
+
+
+## Dva výpady za sebou (druhý míří tam, kde hrdina je po prvním).
+func _charge2() -> void:
+	await _charge()
+	while alive and charge_t > 0.0:
+		await get_tree().process_frame
+	if not alive:
+		return
+	await _charge()
 
 
 func _summon() -> void:
@@ -231,7 +277,7 @@ func _puddle() -> void:
 			p = b.player.position
 		p = b.clamp_to_arena(p, 40.0)
 		var cb := func(pos: Vector2, rr: float) -> void:
-			b.projectiles.add_zone(pos, rr, 5.0 * b.boss_dmg_mult(), 6.0, true, [], _proj_color())
+			b.projectiles.add_zone(pos, rr, 5.0 * power(), 6.0, true, [], _proj_color())
 		b.ground_fx.circle_warn(p, 70.0, 0.7, _proj_color(), cb)
 		await _wait(0.25)
 
@@ -248,6 +294,8 @@ func _shockwave() -> void:
 	Sfx.play("boom", -2.0)
 	var waves := 1 + int(phase >= 2)
 	for k in waves:
+		if not alive:
+			return
 		var wv := b.ground_fx.shockwave(position, 330.0, 760.0, 30.0, _proj_color())
 		_track_wave(wv, 16.0)
 		await _wait(0.8)
@@ -259,5 +307,5 @@ func _track_wave(wv: Dictionary, dmg_base: float) -> void:
 		var d: float = b.player.position.distance_to(wv.c)
 		if not wv.hit and absf(d - wv.r) < wv.w * 0.5 + b.player.r * 0.6:
 			wv.hit = true
-			b.hit_player(dmg_base * b.boss_dmg_mult(), wv.c, true)
+			b.hit_player(dmg_base * power(), wv.c, true)
 		await get_tree().process_frame

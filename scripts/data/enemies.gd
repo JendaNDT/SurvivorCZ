@@ -1,6 +1,6 @@
 extends RefCounted
 class_name EnemyDefs
-## Nepřátelé a bossové. Chování je společné (archetyp), vzhled a jméno patří ke kraji.
+## Nepřátelé, náčelníci a bossové. Chování je společné (archetyp), vzhled a jméno patří ke kraji.
 
 ## Výchozí hodnoty archetypů (úroveň 0, začátek kraje).
 const BEHAVIOR := {
@@ -108,6 +108,41 @@ const BOSSES := {
 		"phases": [["slam", "charge"], ["summon", "radial"], ["shockwave", "rain"]]},
 	"pec": {"name": "Vysokopecní titán", "title": "Srdce ostravských hutí", "proj": "jiskra", "summon": "ingot", "puddle": "ff6a10",
 		"phases": [["puddle", "radial"], ["rain", "summon"], ["spiral", "shockwave", "charge"]]},
+}
+
+
+## Náčelníci (minibossové) v polovině kraje: hlavní nepřítel kraje ve dvojnásobné
+## velikosti s korunou. Útoky jsou stejné jako u bossů (scripts/battle/boss.gd),
+## jen bez fází. „summon“ přivolá nepřítele kraje, „charge2“ je dvojitý výpad.
+const MINIBOSSES := {
+	"primar": {"base": "host", "name": "Lázeňský primář", "title": "Předepíše ti procházku po kolonádě",
+		"attacks": ["summon", "radial"], "summon": "oplatka", "proj": "kapka", "puddle": "a6e6ff"},
+	"sladek": {"base": "sud", "name": "Mistr sládek", "title": "Z hordy uvaří pořádnou pěnu",
+		"attacks": ["charge", "puddle"], "summon": "chmel", "proj": "pena", "puddle": "f2b632"},
+	"predak": {"base": "havir", "name": "Předák havířů", "title": "Zdař bůh, a pak to bouchne",
+		"attacks": ["rain", "summon"], "summon": "dynamit", "proj": "uhel", "puddle": "2b2b2b"},
+	"sklar_mistr": {"base": "sklar", "name": "Mistr sklář", "title": "Fouká střepy do všech stran",
+		"attacks": ["spiral", "radial"], "summon": "brouk", "proj": "strep", "puddle": "8fe9ff"},
+	"snehulak_obri": {"base": "snehulak", "name": "Obří sněhulák", "title": "Když dupne, třese se Sněžka",
+		"attacks": ["slam", "radial"], "summon": "koule", "proj": "snehova", "puddle": "cfeaff"},
+	"zokej": {"base": "kun", "name": "Žokej šampion", "title": "Vítěz Velké pardubické",
+		"attacks": ["charge2", "summon"], "summon": "pernicek", "proj": "srdce", "puddle": "7ee05a"},
+	"prapornik": {"base": "rytir", "name": "Rytíř praporečník", "title": "Nese korouhev blanického vojska",
+		"attacks": ["charge", "slam"], "summon": "kostlivec", "proj": "sip", "puddle": "9a7bd6"},
+	"golem_velky": {"base": "golem", "name": "Velký Golem", "title": "Rabi mu zapomněl vyndat šém",
+		"attacks": ["slam", "shockwave"], "summon": "turista", "proj": "hvezda", "puddle": "c9a06a"},
+	"kapr_obri": {"base": "kapr", "name": "Obří kapr", "title": "Nejtěžší úlovek z Rožmberka",
+		"attacks": ["charge", "puddle"], "summon": "kapr", "proj": "kapka", "puddle": "4aa3d8"},
+	"knour": {"base": "divocak", "name": "Kňour", "title": "Vůdce divočáků z Vysočiny",
+		"attacks": ["charge", "summon"], "summon": "muchomurka", "proj": "spora", "puddle": "9be05a"},
+	"vinar_stary": {"base": "vinar", "name": "Starý vinař", "title": "Do sklepa jen tak nikoho nepustí",
+		"attacks": ["radial", "puddle"], "summon": "hrozen", "proj": "hrozen", "puddle": "8e3a9e"},
+	"starosta": {"base": "hanak", "name": "Starosta Hané", "title": "Pantáta z celé Hané",
+		"attacks": ["slam", "summon"], "summon": "tvaruzek", "proj": "syr", "puddle": "c8e05a"},
+	"hajtman": {"base": "valach", "name": "Valašský hajtman", "title": "Valaška se mu ve slunci blýská",
+		"attacks": ["slam", "charge"], "summon": "svestka", "proj": "hrebik", "puddle": "3a2a20"},
+	"hutnik_mistr": {"base": "hutnik", "name": "Mistr hutník", "title": "Leje roztavené železo",
+		"attacks": ["puddle", "rain"], "summon": "ingot", "proj": "jiskra", "puddle": "ff6a10"},
 }
 
 

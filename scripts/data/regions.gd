@@ -1,6 +1,6 @@
 extends RefCounted
 class_name Regions
-## 14 krajů Česka: sousedé, prostředí, nepřátelé a bossové.
+## 14 krajů Česka: sousedé, prostředí, nepřátelé, náčelníci a bossové.
 ## Pořadí dobývání si volí hráč, obtížnost se řídí počtem už dobytých krajů.
 
 ## Vzory země pro shader (viz shaders/ground.gdshader)
@@ -19,6 +19,7 @@ const DATA := {
 		"decor": ["kolonada", "pramen", "zahon", "strom", "ker"],
 		"enemies": ["host", "oplatka", "konvice"],
 		"boss": "vridlo",
+		"chief": "primar",
 		"tint": "8fd65a",
 	},
 	"PLK": {
@@ -31,6 +32,7 @@ const DATA := {
 		"decor": ["sudy", "smrk", "snop", "kamen", "ker"],
 		"enemies": ["pena", "sud", "chmel"],
 		"boss": "pivni_kral",
+		"chief": "sladek",
 		"tint": "c4cf55",
 	},
 	"ULK": {
@@ -43,6 +45,7 @@ const DATA := {
 		"decor": ["hromada_uhli", "vozik", "piskovec", "suchy_strom", "kamen"],
 		"enemies": ["havir", "uhli", "dynamit"],
 		"boss": "rypadlo",
+		"chief": "predak",
 		"tint": "b39a6a",
 	},
 	"LBK": {
@@ -55,6 +58,7 @@ const DATA := {
 		"decor": ["smrk", "krystal", "kamen", "paprad", "ker"],
 		"enemies": ["banka", "brouk", "sklar"],
 		"boss": "jested",
+		"chief": "sklar_mistr",
 		"tint": "5fb04a",
 	},
 	"HKK": {
@@ -67,6 +71,7 @@ const DATA := {
 		"decor": ["snezny_smrk", "snezny_kamen", "bouda", "sanky"],
 		"enemies": ["koule", "snehulak", "skritek"],
 		"boss": "krakonos",
+		"chief": "snehulak_obri",
 		"tint": "e6eef7",
 	},
 	"PAK": {
@@ -79,6 +84,7 @@ const DATA := {
 		"decor": ["prekazka", "chaloupka", "seno", "strom", "ker"],
 		"enemies": ["pernicek", "kun", "semtex"],
 		"boss": "jezibaba",
+		"chief": "zokej",
 		"tint": "a8d65a",
 	},
 	"STC": {
@@ -91,6 +97,7 @@ const DATA := {
 		"decor": ["vez", "nahrobek", "dub", "snop", "ker"],
 		"enemies": ["kostlivec", "rytir", "lucistnik"],
 		"boss": "blanik",
+		"chief": "prapornik",
 		"tint": "7fcf4f",
 	},
 	"PHA": {
@@ -103,6 +110,7 @@ const DATA := {
 		"decor": ["lampa_praha", "lavicka", "trdelnik", "kasna"],
 		"enemies": ["turista", "holub", "golem"],
 		"boss": "orloj",
+		"chief": "golem_velky",
 		"tint": "e8c66a",
 	},
 	"JHC": {
@@ -115,6 +123,7 @@ const DATA := {
 		"decor": ["rakos", "leknin", "vrba", "lodka", "ker"],
 		"enemies": ["kapr", "rak", "vodnik"],
 		"boss": "vodnik_kral",
+		"chief": "kapr_obri",
 		"tint": "6ac77a",
 	},
 	"VYS": {
@@ -127,6 +136,7 @@ const DATA := {
 		"decor": ["smrk", "houby", "balvan", "parez", "paprad"],
 		"enemies": ["brambora", "divocak", "muchomurka"],
 		"boss": "hribi_kral",
+		"chief": "knour",
 		"tint": "6aa84a",
 	},
 	"JHM": {
@@ -139,6 +149,7 @@ const DATA := {
 		"decor": ["vinna_reva", "sud_vino", "sklep", "kamen", "ker"],
 		"enemies": ["hrozen", "netopyr", "vinar"],
 		"boss": "drak",
+		"chief": "vinar_stary",
 		"tint": "c9b06a",
 	},
 	"OLK": {
@@ -151,6 +162,7 @@ const DATA := {
 		"decor": ["snop", "kasna", "bedna_syr", "strom", "ker"],
 		"enemies": ["tvaruzek", "hanak", "praded"],
 		"boss": "syrovy_kral",
+		"chief": "starosta",
 		"tint": "d6c95a",
 	},
 	"ZLK": {
@@ -163,6 +175,7 @@ const DATA := {
 		"decor": ["roubenka", "svestka_strom", "plot", "krabice", "ker"],
 		"enemies": ["svestka", "bota", "valach"],
 		"boss": "obri_bota",
+		"chief": "hajtman",
 		"tint": "9ad65a",
 	},
 	"MSK": {
@@ -175,6 +188,7 @@ const DATA := {
 		"decor": ["komin", "nosnik", "struska", "sud_olej", "vozik"],
 		"enemies": ["hutnik", "ingot", "tatra"],
 		"boss": "pec",
+		"chief": "hutnik_mistr",
 		"tint": "a0a8b0",
 	},
 }

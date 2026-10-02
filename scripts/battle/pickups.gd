@@ -1,6 +1,7 @@
 extends Node
 class_name PickupSystem
-## Elixír (zkušenosti), zlaťáky, svíčková (léčení), magnet a truhly.
+## Elixír (zkušenosti), zlaťáky, svíčková (léčení), magnet a truhly
+## (truhla s hodnotou 2 je od náčelníka).
 
 const XP_CAP := 320
 
@@ -58,11 +59,25 @@ func drop(kind: String, pos: Vector2, value: int = 1) -> void:
 	p.spr = Baker.sprite("fx:" + kind)
 	p.spr.position = pos
 	if kind == "chest":
-		p.spr.scale *= 1.1
+		p.spr.scale *= _chest_scale(p)
 	b.pickup_layer.add_child(p.spr)
 	picks.append(p)
 	if kind.begins_with("xp"):
 		xp_count += 1
+
+
+## Truhla náčelníka (value 2) je větší.
+func _chest_scale(p: Pick) -> float:
+	if p.kind != "chest":
+		return 1.0
+	return 1.5 if p.value >= 2 else 1.1
+
+
+## Truhly, které hrdina nestihl sebrat, k němu přiletí (třeba když přichází boss).
+func pull_chests() -> void:
+	for p in picks:
+		if p.kind == "chest":
+			p.pull = true
 
 
 func magnetize_all() -> void:
@@ -92,7 +107,7 @@ func update(delta: float) -> void:
 				p.spd = -120.0
 		p.spr.position = p.pos + Vector2(0, -absf(sin(p.t * 3.5)) * 4.0)
 		if p.kind == "chest" or p.kind == "magnet" or p.kind == "jidlo":
-			p.spr.scale = Vector2.ONE * (1.0 + 0.08 * sin(p.t * 5.0)) / Baker.SCALE
+			p.spr.scale = Vector2.ONE * (1.0 + 0.08 * sin(p.t * 5.0)) * _chest_scale(p) / Baker.SCALE
 		if d < 22.0 and p.pull:
 			_collect(p)
 
@@ -116,7 +131,7 @@ func _collect(p: Pick) -> void:
 			magnetize_all()
 			Sfx.play("chest", -4.0)
 		"chest":
-			b.open_chest()
+			b.open_chest(p.value >= 2)
 
 
 func clear() -> void:
