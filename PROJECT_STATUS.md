@@ -1,12 +1,14 @@
 # Dobyj Česko! – Project Status
-*Naposled aktualizováno: 01. 10. 2026*
+*Naposled aktualizováno: 02. 10. 2026*
 
 ## 🎯 Co to je
 Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dobývá 14 krajů Česka. Grafika připomíná Clash of Clans a celá vzniká v kódu.
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Zahrát si hru na telefonu a sepsat dojmy z obtížnosti.**
+**Zahrát si hru na telefonu, pak milník M1 (telefon a nastavení).**
+Celý plán vylepšení je v `docs/plan-vylepseni.md` (10 milníků). M1 přidá úspornou grafiku, ukazatel FPS, vibrace, hlasitost hudby a efektů zvlášť a ovládání pro leváky. Než se pustíme do M8 a dalších, je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
+
 Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20 s. Automat vyhrál kraje na obtížnosti 0, 1, 5, 9, 12 i 13 (s vylepšeními ze Zbrojnice), souboj s bossem trval 40–70 s a celý kraj 4–5 minut. Čísla obtížnosti jsou v `scripts/battle/battle.gd` (`enemy_hp_mult`, `enemy_dmg_mult`, `boss_dmg_mult`, HP bosse ve `start_boss`) a v `scripts/battle/director.gd` (`rate`).
 
 ## ✅ Hotovo
@@ -23,12 +25,20 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - Meč míří sám na nejbližšího nepřítele (při couvání před hordou jinak sekal do prázdna)
 
 ## 📝 TODO
+### Plán vylepšení (podrobně v `docs/plan-vylepseni.md`)
+- M1 Telefon a nastavení: úsporná grafika, FPS, vibrace, hlasitosti, leváci, uložení verze 2
+- M2 Nástrahy krajů: 14 mechanik (gejzíry, tramvaj, vánice, kombajn…)
+- M3 Minibossové: náčelník v polovině každého kraje
+- M4 Pocit z boje: nástup bosse, zastavení při zásahu, prach, smrti bossů
+- M5 Věděl jsi? a Kniha: fakta o krajích se zdroji, bestiář, odznaky
+- M6 Hudba podle oblasti: dechovka, cimbál, hory, hutě, Praha
+- M7 Události v boji: oltář, boží muka, obelisk, kramář, zamčená truhla
+- M8 Hrdinové: Bivoj, kněžna Libuše, Horymír se Šemíkem
+- M9 Po dohrání: úrovně žáru, nekonečný režim, denní výzva
+- M10 Google Play: vlastní klíč, AAB, stránka v obchodě
+
 ### Backlog (později)
-- Víc postav hrdiny (design dokument: Strážce, Pyromantka, Lovec)
-- Události na mapě kraje (oltář, svatyně, obchodník)
 - Modulátory a fúze zbraní z design dokumentu
-- Nastavení hlasitosti hudby a efektů zvlášť
-- Denní výzva a úrovně žáru po dohrání
 
 ## 🐛 Známé bugy
 - Žádné potvrzené. Výkon na slabých telefonech zatím neověřený (cíl je ~230 nepřátel naráz).
