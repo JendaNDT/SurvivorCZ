@@ -77,8 +77,11 @@ func _ready() -> void:
 			names.append(Regions.DATA[id].short)
 		_toast("Odemčeno: " + ", ".join(names))
 	if not Game.crash_report.is_empty():
-		show_crash_report(Game.crash_report)
+		var rep: Dictionary = Game.crash_report
 		Game.crash_report = {}
+		rep["android"] = CrashInfo.describe(CrashInfo.last_exit())
+		Game.note("hlášení o pádu: " + " | ".join(rep["android"]))
+		show_crash_report(rep)
 	elif not Game.data.get("intro_seen", false):
 		show_intro()
 	elif Game.perf_offer > 0.0:
@@ -93,7 +96,9 @@ func _ready() -> void:
 	elif open_on_start == "quit":
 		show_quit_confirm()
 	elif open_on_start == "crash":
-		show_crash_report({"screen": "bitva", "region": "PAK", "battle": "boss 2:30, úroveň 18, nepřátel 40, boss 62 %", "mem_mb": 212.4, "tex_mb": 96.1, "nodes": 1834, "fps": 60, "uptime": 734, "version": "1.2.0", "quality": "high", "log": ["ERROR: ukázková chyba"]})
+		var tomb := {"signal": "SIGSEGV", "code": "SEGV_MAPERR", "fault": 0x10, "abort": "", "causes": ["null pointer dereference"], "thread": "AudioThread", "frames": ["#00 libgodot_android.so +0x1a2b3c", "#01 libgodot_android.so +0x1a2000", "#02 libc.so +0x55aa"]}
+		var demo := CrashInfo.describe({"reason": 5, "status": 11, "desc": "crash", "pss_mb": 212, "tomb": tomb})
+		show_crash_report({"screen": "mapa", "tex_mb": 32.6, "nodes": 38, "fps": 120, "uptime": 4, "version": "1.2.4", "quality": "high", "android": demo, "log": ["[0 s] start, verze 1.2.4", "[1 s] obrazovka: mapa", "[1 s] pečení 6 kreseb (map:mountain…)", "[1 s] pečení hotovo"]})
 	elif open_on_start.begins_with("region:"):
 		select(open_on_start.substr(7))
 	elif Game.all_conquered() and not Game.data.get("ending_seen", false):
@@ -391,13 +396,13 @@ func show_quit_confirm() -> void:
 	board.add_child(quit)
 
 
-## Hra minule spadla: ukáž, kde se to stalo, ať to Jenda může poslat.
+## Hra minule spadla: ukáž, kde se to stalo, a nabídni zkopírování hlášení.
 func show_crash_report(r: Dictionary) -> void:
 	_modal()
 	var board := MapUI.Board.new()
 	board.title = "HRA MINULE SPADLA"
 	board.ribbon_col = Color("d7262c")
-	board.size = Vector2(minf(760.0, size.x - 30), minf(470.0, size.y - 20))
+	board.size = Vector2(minf(900.0, size.x - 30), minf(560.0, size.y - 16))
 	board.position = (size - board.size) * 0.5
 	popup_layer.add_child(board)
 	_pop(board)
@@ -407,31 +412,51 @@ func show_crash_report(r: Dictionary) -> void:
 		where = "bitva, %s – %s" % [Regions.DATA[rid].short if Regions.DATA.has(rid) else rid, r.get("battle", "")]
 	elif r.get("screen", "") != "":
 		where = str(r.get("screen"))
-	var mins := int(r.get("uptime", 0)) / 60
 	var lines := [
-		"Promiň, hra se nečekaně ukončila. Pomůže mi snímek této obrazovky.",
-		"",
 		"Kde: " + where,
-		"Paměť %s MB, textury %s MB, uzlů %d, FPS %d" % [r.get("mem_mb", "?"), r.get("tex_mb", "?"), int(r.get("nodes", 0)), int(r.get("fps", 0))],
-		"Hra běžela %d min · verze %s · grafika %s" % [mins, r.get("version", "?"), "úsporná" if r.get("quality", "") == "low" else "vysoká"],
+		"Textury %s MB, uzlů %d, FPS %d, běžela %d s · verze %s · grafika %s" % [r.get("tex_mb", "?"), int(r.get("nodes", 0)), int(r.get("fps", 0)), int(r.get("uptime", 0)), r.get("version", "?"), "úsporná" if r.get("quality", "") == "low" else "vysoká"],
 	]
+	lines.append_array(r.get("android", []))
+	lines.append("Poslední záznamy:")
 	for l in r.get("log", []):
-		lines.append(str(l))
+		lines.append("  " + str(l))
+	var full := "Dobyj Česko! – hlášení o pádu\n" + "\n".join(lines)
+	var head := Label.new()
+	head.text = "Promiň, hra se nečekaně ukončila. Zkopíruj hlášení a pošli mi ho."
+	_style_label(head, 19)
+	head.position = Vector2(30, 58)
+	head.size = Vector2(board.size.x - 60, 30)
+	board.add_child(head)
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(30, 96)
+	scroll.size = Vector2(board.size.x - 60, board.size.y - 200)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	board.add_child(scroll)
 	var info := Label.new()
 	info.text = "\n".join(lines)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info.add_theme_color_override("font_color", Color("4a2c12"))
-	info.add_theme_constant_override("outline_size", 0)
-	info.add_theme_constant_override("shadow_outline_size", 0)
-	info.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
-	info.add_theme_font_size_override("font_size", 19)
-	info.position = Vector2(34, 62)
-	info.size = Vector2(board.size.x - 68, board.size.y - 160)
-	board.add_child(info)
-	var ok := CCButton.make("Rozumím", Art.BTN_GREEN, Vector2(240, 70), 28)
-	ok.position = Vector2((board.size.x - 240) * 0.5, board.size.y - 96)
+	info.custom_minimum_size = Vector2(scroll.size.x - 16, 0)
+	_style_label(info, 16)
+	scroll.add_child(info)
+	var copy := CCButton.make("Zkopírovat", Art.BTN_BLUE, Vector2(240, 70), 26)
+	copy.position = Vector2(board.size.x * 0.5 - 256, board.size.y - 96)
+	copy.pressed.connect(func():
+		DisplayServer.clipboard_set(full)
+		copy.caption = "Zkopírováno"
+		copy.queue_redraw())
+	board.add_child(copy)
+	var ok := CCButton.make("Rozumím", Art.BTN_GREEN, Vector2(240, 70), 26)
+	ok.position = Vector2(board.size.x * 0.5 + 16, board.size.y - 96)
 	ok.pressed.connect(close_popup)
 	board.add_child(ok)
+
+
+func _style_label(l: Label, fs: int) -> void:
+	l.add_theme_color_override("font_color", Color("4a2c12"))
+	l.add_theme_constant_override("outline_size", 0)
+	l.add_theme_constant_override("shadow_outline_size", 0)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	l.add_theme_font_size_override("font_size", fs)
 
 
 ## Krátké oznámení dole na mapě.
