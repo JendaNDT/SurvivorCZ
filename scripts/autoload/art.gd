@@ -476,7 +476,10 @@ func icon_flag(ci: CanvasItem, base: Vector2, s: float, t: float = 0.0) -> void:
 	for i in range(n, -1, -1):
 		var x := s * 0.9 * i / n
 		pts.append(top + Vector2(x, s * 0.6 + sin(i * 0.9 + t * 6.0) * s * 0.06))
-	outline(ci, pts, 2.0)
+	# obrys čarou (ne zvětšeným polygonem): vlajka se na mapě kreslí každý snímek
+	var ol := pts.duplicate()
+	ol.append(pts[0])
+	ci.draw_polyline(ol, OUTLINE, 4.0, true)
 	# česká trikolóra
 	var top_half := PackedVector2Array()
 	var bot_half := PackedVector2Array()

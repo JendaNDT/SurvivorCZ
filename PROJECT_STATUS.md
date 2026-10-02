@@ -6,8 +6,8 @@ Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dob�
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Zahrát si verzi 1.2.0 na telefonu: nástrahy krajů a hlavně jestli hra ještě padá.**
-Když hra spadne, při dalším spuštění ukáže na mapě okno „Hra minule spadla“ s místem, pamětí a časem. Pošli mi jeho snímek. Pak milník M3 (minibossové). Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
+**Zahrát si verzi 1.2.1 na telefonu: jestli hra ještě „padá“ v menu.**
+Na mapě teď gesto Zpět nejdřív zobrazí dotaz „Ukončit hru?“. Kdyby hra přesto spadla, při dalším spuštění ukáže okno „Hra minule spadla“ s místem, pamětí a časem. Pošli mi jeho snímek. Pak milník M3 (minibossové). Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
 
 Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`.
 
@@ -37,6 +37,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
   - opravena chyba ve smyčce nepřátel, když výbuch zabil víc nepřátel naráz
   - černá skříňka: po pádu mapa ukáže, kde a kdy k němu došlo, a hra zapisuje log i na telefonu (ověřeno násilným ukončením hry uprostřed bitvy)
   - zátěžový test `--soak=N`: 28 bitev za sebou bez úniku paměti
+  - verze 1.2.1: gesto Zpět na mapě se zeptá „Ukončit hru?“ místo okamžitého konce, mapa už každý snímek nepřepočítává obrysy štítů, vlajek a šipky
 
 ## 📝 TODO
 ### Plán vylepšení (podrobně v `docs/plan-vylepseni.md`)
@@ -55,7 +56,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - Modulátory a fúze zbraní z design dokumentu
 
 ## 🐛 Známé bugy
-- **Hra občas spadne na plochu (verze 1.1.0).** Pravděpodobná příčina (hudba ve vlákně na pozadí) je ve verzi 1.2.0 odstraněná a grafická paměť už neroste. Jestli pády zmizely, ověří až hraní na telefonu. Kdyby ne, pomůže okno „Hra minule spadla“.
+- **Hra „padala“ na plochu v menu.** Nejpravděpodobnější příčina: na mapě gesto Zpět (přejetí od okraje displeje) hru okamžitě ukončilo. Od verze 1.2.1 se nejdřív zeptá. Další možné příčiny (hudba ve vlákně, rostoucí grafická paměť) jsou opravené ve verzi 1.2.0. Jestli pády zmizely, ověří hraní na telefonu.
 - Zlínsko a Olomoucko na obtížnosti 11–12 vyhraje automat jen asi napůl (boss je těsně neporazí). Až si je zahraješ, napiš, jestli jsou moc těžké.
 - Když telefon nestíhá 30 FPS, hra se zpomalí (krok simulace je omezený na 1/30 s).
 - Opraveno: smrt bosse uprostřed zásahu jedovou kaluží mohla způsobit chybu indexu.

@@ -90,6 +90,8 @@ func _ready() -> void:
 		show_settings()
 	elif open_on_start == "perf":
 		show_perf_offer(31.0)
+	elif open_on_start == "quit":
+		show_quit_confirm()
 	elif open_on_start == "crash":
 		show_crash_report({"screen": "bitva", "region": "PAK", "battle": "boss 2:30, úroveň 18, nepřátel 40, boss 62 %", "mem_mb": 212.4, "tex_mb": 96.1, "nodes": 1834, "fps": 60, "uptime": 734, "version": "1.2.0", "quality": "high", "log": ["ERROR: ukázková chyba"]})
 	elif open_on_start.begins_with("region:"):
@@ -107,6 +109,7 @@ func _bake() -> void:
 	jobs.append({"key": "map:pine", "size": Vector2(36, 54), "fn": MapArt.pine, "origin": Vector2(0.5, 0.85)})
 	jobs.append({"key": "map:castle", "size": Vector2(90, 90), "fn": MapArt.castle, "origin": Vector2(0.5, 0.8)})
 	jobs.append({"key": "hero:0", "size": HeroArt.SIZE, "fn": HeroArt.draw, "t": 0.0})
+	jobs.append({"key": "map:arrow", "size": Vector2(50, 50), "fn": MapArt.arrow})
 	await Baker.bake_many(jobs)
 
 
@@ -349,6 +352,40 @@ func show_intro() -> void:
 		Game.save_game()
 		close_popup())
 	intro.add_child(play)
+
+
+## Dotaz před ukončením hry (tlačítko nebo gesto Zpět na mapě).
+func show_quit_confirm() -> void:
+	_modal()
+	var board := MapUI.Board.new()
+	board.title = "UKONČIT HRU?"
+	board.ribbon_col = Color("3fa8ff")
+	board.size = Vector2(540, 270)
+	board.position = (size - board.size) * 0.5
+	popup_layer.add_child(board)
+	_pop(board)
+	var info := Label.new()
+	info.text = "Postup je uložený, příště navážeš tam, kde hra skončila."
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_theme_color_override("font_color", Color("4a2c12"))
+	info.add_theme_constant_override("outline_size", 0)
+	info.add_theme_constant_override("shadow_outline_size", 0)
+	info.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	info.add_theme_font_size_override("font_size", 21)
+	info.position = Vector2(30, 70)
+	info.size = Vector2(480, 70)
+	board.add_child(info)
+	var stay := CCButton.make("Hrát dál", Art.BTN_GREEN, Vector2(220, 70), 28)
+	stay.position = Vector2(board.size.x * 0.5 - 236, board.size.y - 100)
+	stay.pressed.connect(close_popup)
+	board.add_child(stay)
+	var quit := CCButton.make("Ukončit", Art.BTN_RED, Vector2(220, 70), 28)
+	quit.position = Vector2(board.size.x * 0.5 + 16, board.size.y - 100)
+	quit.pressed.connect(func():
+		Game.session_end()
+		get_tree().quit())
+	board.add_child(quit)
 
 
 ## Hra minule spadla: ukáž, kde se to stalo, ať to Jenda může poslat.

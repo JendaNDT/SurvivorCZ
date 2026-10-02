@@ -36,6 +36,12 @@ static func castle(ci: CanvasItem, _t: float) -> void:
 	Art.flat(ci, Art.arc_pts(Vector2(0, -12), 8, PI, TAU, 8), Color("5a3a1a"), 2.0)
 
 
+## Šipka, která ukazuje na první kraj.
+static func arrow(ci: CanvasItem, _t: float) -> void:
+	var pts := Art.poly([-10, -16, 10, -16, 10, 0, 18, 0, 0, 16, -18, 0, -10, 0])
+	Art.shape(ci, pts, Art.GOLD, 2.5, 0.5)
+
+
 ## Stín ostrova, pěna u břehu a skalnatý okraj (pod krajinou).
 class MapUnder extends Node2D:
 	var m: MapScreen
@@ -208,10 +214,9 @@ class MapLive extends Node2D:
 					draw_arc(lp, 20 + pulse * 10.0, 0, TAU, 32, Color(1, 0.9, 0.4, 0.7 * (1.0 - pulse)), 2.5, true)
 					var bob := sin(t * 3.0) * 3.0
 					_shield(lp + Vector2(0, -2 + bob), Color("e2382c"), "ui:swords")
-					if Game.conquered_count() == 0:
+					if Game.conquered_count() == 0 and Baker.has("map:arrow"):
 						var ay := lp.y - 52 + sin(t * 5.0) * 6.0
-						var arrow := Art.poly([lp.x - 10, ay - 16, lp.x + 10, ay - 16, lp.x + 10, ay, lp.x + 18, ay, lp.x, ay + 16, lp.x - 18, ay, lp.x - 10, ay])
-						Art.shape(self, arrow, Art.GOLD, 2.5, 0.5)
+						draw_texture_rect(Baker.tex("map:arrow"), Rect2(Vector2(lp.x - 25, ay - 25), Vector2(50, 50)), false)
 				"locked":
 					_shield(lp, Color("8d8a85"), "ui:lock")
 				"conquered":
@@ -221,10 +226,16 @@ class MapLive extends Node2D:
 						draw_texture_rect(tex, Rect2(lp - Vector2(s.x * 0.5, s.y * 0.8 - 6), s), false)
 					Art.icon_flag(self, lp + Vector2(8, -28), 15, t + id.hash() % 7)
 
+	## Obrys štítu se spočítá jednou a pak se jen posouvá (mapa se kreslí každý snímek).
+	var shield_pts := PackedVector2Array()
+	var shield_outline := PackedVector2Array()
+
 	func _shield(c: Vector2, col: Color, icon: String) -> void:
-		var pts := Art.poly([0, -18, 16, -12, 14, 6, 0, 18, -14, 6, -16, -12])
-		var sp := Art.xform(pts, c)
-		Art.safe_poly(self, Art.grow(sp, 2.5), Art.OUTLINE)
+		if shield_pts.is_empty():
+			shield_pts = Art.poly([0, -18, 16, -12, 14, 6, 0, 18, -14, 6, -16, -12])
+			shield_outline = Art.grow(shield_pts, 2.5)
+		var sp := Art.xform(shield_pts, c)
+		Art.safe_poly(self, Art.xform(shield_outline, c), Art.OUTLINE)
 		Art.grad(self, sp, col.lightened(0.25), col.darkened(0.2))
 		if Baker.has(icon):
 			draw_texture_rect(Baker.tex(icon), Rect2(c - Vector2(13, 13), Vector2(26, 26)), false)

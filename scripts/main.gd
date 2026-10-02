@@ -102,7 +102,7 @@ func _ready() -> void:
 		show_map(false)
 	elif battle_id != "":
 		start_battle(battle_id, false)
-	elif screen in ["shop", "settings", "perf", "crash"]:
+	elif screen in ["shop", "settings", "perf", "crash", "quit"]:
 		show_map(false, screen)
 	elif screen.begins_with("region:"):
 		show_map(false, screen)
@@ -144,12 +144,12 @@ func _notification(what: int) -> void:
 		else:
 			b.pause_game()
 	elif current is MapScreen:
+		# Zpět (i gesto od okraje displeje) hru neukončí hned, nejdřív se zeptá.
 		var m := current as MapScreen
 		if m.popup_layer.get_child_count() > 0:
 			m.close_popup()
 		else:
-			Game.session_end()
-			get_tree().quit()
+			m.show_quit_confirm()
 	elif current is EndingScreen:
 		show_map()
 
