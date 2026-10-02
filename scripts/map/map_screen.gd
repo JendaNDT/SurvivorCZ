@@ -91,7 +91,7 @@ func _ready() -> void:
 	elif open_on_start == "perf":
 		show_perf_offer(31.0)
 	elif open_on_start == "crash":
-		show_crash_report({"screen": "bitva", "region": "PAK", "battle": "BOSS 2:30, úroveň 18, nepřátel 40, boss 62 %", "mem_mb": 212.4, "tex_mb": 96.1, "nodes": 1834, "fps": 60, "uptime": 734, "version": "1.2.0", "quality": "high", "log": ["ERROR: ukázková chyba"]})
+		show_crash_report({"screen": "bitva", "region": "PAK", "battle": "boss 2:30, úroveň 18, nepřátel 40, boss 62 %", "mem_mb": 212.4, "tex_mb": 96.1, "nodes": 1834, "fps": 60, "uptime": 734, "version": "1.2.0", "quality": "high", "log": ["ERROR: ukázková chyba"]})
 	elif open_on_start.begins_with("region:"):
 		select(open_on_start.substr(7))
 	elif Game.all_conquered() and not Game.data.get("ending_seen", false):
@@ -364,7 +364,7 @@ func show_crash_report(r: Dictionary) -> void:
 	var where := "mapa"
 	if r.get("screen", "") == "bitva":
 		var rid: String = r.get("region", "")
-		where = "bitva o %s – %s" % [Regions.DATA[rid].short if Regions.DATA.has(rid) else rid, r.get("battle", "")]
+		where = "bitva, %s – %s" % [Regions.DATA[rid].short if Regions.DATA.has(rid) else rid, r.get("battle", "")]
 	elif r.get("screen", "") != "":
 		where = str(r.get("screen"))
 	var mins := int(r.get("uptime", 0)) / 60
@@ -372,7 +372,7 @@ func show_crash_report(r: Dictionary) -> void:
 		"Promiň, hra se nečekaně ukončila. Pomůže mi snímek této obrazovky.",
 		"",
 		"Kde: " + where,
-		"Paměť %s MB, textury %s MB, uzlů %s, FPS %s" % [r.get("mem_mb", "?"), r.get("tex_mb", "?"), r.get("nodes", "?"), r.get("fps", "?")],
+		"Paměť %s MB, textury %s MB, uzlů %d, FPS %d" % [r.get("mem_mb", "?"), r.get("tex_mb", "?"), int(r.get("nodes", 0)), int(r.get("fps", 0))],
 		"Hra běžela %d min · verze %s · grafika %s" % [mins, r.get("version", "?"), "úsporná" if r.get("quality", "") == "low" else "vysoká"],
 	]
 	for l in r.get("log", []):

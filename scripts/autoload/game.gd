@@ -109,7 +109,8 @@ func _last_log_errors() -> Array:
 	var lines := FileAccess.get_file_as_string("user://logs/" + newest).split("\n")
 	var out := []
 	for l in lines:
-		if "ERROR" in l or "error" in l:
+		# chyba zvukového ovladače se objevuje jen na počítači bez zvukové karty
+		if ("ERROR" in l or "error" in l) and not "status < 0" in l and not "ALSA" in l:
 			out.append(l.strip_edges().substr(0, 110))
 	return out.slice(maxi(0, out.size() - 4))
 

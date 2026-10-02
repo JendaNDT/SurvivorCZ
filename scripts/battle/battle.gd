@@ -298,7 +298,8 @@ func _process(delta: float) -> void:
 	if autoplay and int(time_total / 10.0) != int((time_total + delta) / 10.0):
 		print("[t=%5.1f] stav=%d lvl=%d hp=%d/%d zabito=%d nepřátel=%d zbraně=%s boss=%s" % [time_total + delta, state, level, int(player.hp), int(player.max_hp), kills, enemies.count(), str(weapons.weapons.map(func(w): return "%s%d" % [w.id, w.level])), ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-"])
 	if int(time_total * 0.5) != int((time_total + delta) * 0.5):
-		Game.crumbs["battle"] = "%s %d:%02d, úroveň %d, nepřátel %d%s" % [State.keys()[state], int(elapsed) / 60, int(elapsed) % 60, level, enemies.count(), (", boss %d %%" % int(100.0 * maxf(0.0, boss.hp) / boss.max_hp)) if boss else ""]
+		var st_names := ["načítání", "přežívání", "výběr karty", "pauza", "příchod bosse", "boss", "výhra", "prohra"]
+		Game.crumbs["battle"] = "%s %d:%02d, úroveň %d, nepřátel %d%s" % [st_names[state], int(elapsed) / 60, int(elapsed) % 60, level, enemies.count(), (", boss %d %%" % int(100.0 * maxf(0.0, boss.hp) / boss.max_hp)) if boss else ""]
 	time_total += delta
 	if state == State.PLAY or state == State.BOSS or state == State.BOSS_INTRO:
 		if state == State.PLAY:

@@ -33,9 +33,9 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - **M2 Nástrahy krajů (verze 1.2.0):** 14 mechanik (gejzíry, sudy, pásy, mlha, vánice, dostih, katapult, tramvaj, rybníky, spory, vítr, kombajn, švestky, praskliny), stuha s nápovědou při prvním výskytu, nové kresby (galerie strana 7) a 10 zvuků, automat se vyhýbá pruhům a nebezpečným místům
 - **Stabilita (verze 1.2.0):**
   - hudba se už neskládá ve vlákně na pozadí (to dřív poškozovalo paměť), ale po kouscích v hlavním vlákně, a uloží se do telefonu
-  - kresby kraje se po bitvě uvolní: grafická paměť už neroste s každým krajem
+  - kresby kraje se po bitvě uvolní: grafická paměť se ustálí na ~32 MB (dřív rostla o ~10 MB s každým krajem)
   - opravena chyba ve smyčce nepřátel, když výbuch zabil víc nepřátel naráz
-  - černá skříňka: po pádu mapa ukáže, kde a kdy k němu došlo, a hra zapisuje log i na telefonu
+  - černá skříňka: po pádu mapa ukáže, kde a kdy k němu došlo, a hra zapisuje log i na telefonu (ověřeno násilným ukončením hry uprostřed bitvy)
   - zátěžový test `--soak=N`: 28 bitev za sebou bez úniku paměti
 
 ## 📝 TODO
