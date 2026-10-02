@@ -73,11 +73,16 @@ func update(delta: float) -> void:
 	_build_grid()
 	var pp: Vector2 = b.player.position
 	var pdir: Vector2 = b.player.move_dir
+	var hz: HazardSystem = b.hazards if b.hazards and b.hazards.mods else null
 	var i := list.size() - 1
 	while i >= 0:
+		# výbuch nebo nástraha může během kroku odebrat víc nepřátel naráz
+		if i >= list.size():
+			i = list.size() - 1
+			continue
 		var e: Enemy = list[i]
 		i -= 1
-		if not e.alive:
+		if not is_instance_valid(e) or not e.alive:
 			continue
 		if e.is_boss:
 			continue
@@ -126,6 +131,8 @@ func update(delta: float) -> void:
 			_:
 				want = _move_behavior(e, dir, dist, delta)
 		e.vel = want
+		if hz:
+			e.vel = want * hz.speed_mult(e.position, e) + hz.push_at(e.position, true)
 		e.position += (e.vel + e.knock) * delta
 		e.knock = e.knock.move_toward(Vector2.ZERO, delta * 900.0)
 		# vzájemné odpuzování

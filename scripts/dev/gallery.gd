@@ -1,6 +1,7 @@
 extends Node2D
 ## Vývojářská galerie: upeče a zobrazí všechny kresby (kontrola grafiky).
 ## Spuštění: godot --path . res://scenes/dev/gallery.tscn -- [--shot=soubor.png] [--page=N]
+## Stránky: 0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy krajů
 
 var page := 0
 var zoom := 1.0
@@ -29,6 +30,13 @@ func _ready() -> void:
 			var key: String = "b_" + id
 			jobs.append({"key": key, "size": BossArt.SIZE, "fn": func(ci, t): BossArt.draw(ci, id, t), "t": 0.0})
 			ids.append(key)
+	elif page == 7:
+		spacing = 320.0
+		for id in HazardArt.SIZES.keys():
+			for t in ([0.0, 1.0] if id == "kun" else [0.0]):
+				var key: String = "h_%s%s" % [id, "" if t == 0.0 else "1"]
+				jobs.append({"key": key, "size": HazardArt.size_of(id), "fn": func(ci, tt): HazardArt.draw(ci, id, tt), "t": t, "origin": HazardArt.origin_of(id)})
+				ids.append(key)
 	elif page == 6:
 		spacing = 92.0
 		var fx := ["slash", "axe", "bolt", "bullet", "fireball", "meteor", "flask", "puddle", "shield", "wagon", "frost", "kapka", "pena", "uhel", "strep", "signal", "snehova", "srdce", "sip", "hvezda", "hrnicek", "spora", "hrozen", "ohen", "mlha", "syr", "hrebik", "jiskra", "xp0", "xp1", "xp2", "coin", "jidlo", "magnet", "chest"]
@@ -66,6 +74,8 @@ func _ready() -> void:
 		var s := Baker.sprite(k)
 		s.position = Vector2(x, y)
 		s.scale *= zoom
+		if page == 7:
+			s.position.y += 70.0 * zoom
 		add_child(s)
 		var l := Label.new()
 		l.text = k.substr(2)

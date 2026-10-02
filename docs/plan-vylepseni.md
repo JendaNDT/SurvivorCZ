@@ -9,7 +9,7 @@ Plán pokrývá všechny navržené vylepšení: nástrahy a minibosse v krajíc
 | # | Milník | Co přinese | Náročnost |
 | --- | --- | --- | --- |
 | M1 ✅ | Telefon a nastavení | úsporná grafika, FPS, vibrace, hlasitost hudby a efektů zvlášť, leváci | hotovo (verze 1.1.0) |
-| M2 | Nástrahy krajů | 14 mechanik, každý kraj se hraje jinak | 2 sessions |
+| M2 ✅ | Nástrahy krajů | 14 mechanik, každý kraj se hraje jinak | hotovo (verze 1.2.0) |
 | M3 | Minibossové | náčelník v polovině každého kraje | 1 session |
 | M4 | Pocit z boje | nástup bosse, krátké zastavení při zásahu, prach, smrti bossů | 1 session |
 | M5 | Věděl jsi? a Kniha | fakta o krajích, bestiář, odznaky | 1 session |
@@ -149,6 +149,8 @@ Malý štítek v HUD pod ukazateli: FPS a počet nepřátel. Zapíná se v nasta
 ## M2 Nástrahy krajů
 
 **Cíl:** každý kraj má vlastní mechaniku, se kterou se dá i chytře hrát: většina nástrah ublíží nepřátelům víc než hrdinovi, takže se vyplatí hordu do nich nalákat.
+
+**Stav: hotovo ve verzi 1.2.0.** Proti plánu: zóny nástrah (oblaky spor, horké stopy, krátery) si vede přímo `HazardSystem`, takže `add_zone()` zůstal beze změny; vliv na pohyb je v `HazardSystem.speed_mult()` a `push_at()` místo `Battle.slow_at()`/`push_at()`. Koleje jsou po 800 px (ne 1100), aby tramvaj jezdila i u startu. V aréně bosse zůstává kromě počasí i terén (pásy, rybníky), vypnou se jen nástrahy, které padají nebo jezdí. Spolu s M2 přišla oprava stability (hudba bez vláken, uvolňování kreseb kraje, černá skříňka).
 
 ### Architektura
 

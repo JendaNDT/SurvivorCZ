@@ -18,6 +18,8 @@ var dash_dir := Vector2.RIGHT
 var invuln := 0.0
 var hurt_cd := 0.0
 var flash := 0.0
+## Odhození (nástrahy krajů), postupně slábne.
+var knock := Vector2.ZERO
 var anim_t := 0.0
 var ghost_t := 0.0
 
@@ -64,6 +66,8 @@ func update(delta: float, input: Vector2) -> void:
 	invuln = maxf(0.0, invuln - delta)
 	hurt_cd = maxf(0.0, hurt_cd - delta)
 	var vel: Vector2 = move_dir * b.stats.speed
+	if b.hazards and b.hazards.mods:
+		vel = vel * b.hazards.speed_mult(position, null) + b.hazards.push_at(position, false)
 	if dash_t > 0.0:
 		dash_t -= delta
 		vel = dash_dir * b.stats.speed * 3.4
@@ -71,7 +75,8 @@ func update(delta: float, input: Vector2) -> void:
 		if ghost_t <= 0.0:
 			ghost_t = 0.04
 			_ghost()
-	position += vel * delta
+	position += (vel + knock) * delta
+	knock = knock.move_toward(Vector2.ZERO, delta * 1600.0)
 	if b.arena_radius > 0.0:
 		position = b.clamp_to_arena(position, r)
 	# regenerace

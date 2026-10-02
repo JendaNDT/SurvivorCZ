@@ -26,9 +26,92 @@ var perf_offer := 0.0
 var _vib_until := 0
 
 
+## Černá skříňka: průběžný záznam, kde hra je. Když při dalším spuštění
+## záznam říká „running“, hra minule spadla a mapa ukáže, kde se to stalo.
+const SESSION_PATH := "user://session.json"
+var crash_report: Dictionary = {}
+var crumbs := {"screen": "start"}
+var _crumb_t := 0.0
+
+
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	load_game()
+	_check_last_session()
 	apply_quality.call_deferred()
+
+
+func _process(delta: float) -> void:
+	_crumb_t -= delta
+	if _crumb_t <= 0.0:
+		_crumb_t = 5.0
+		_write_session("running")
+
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT:
+			_write_session("paused")
+		NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN:
+			_write_session("running")
+		NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_PREDELETE:
+			_write_session("closed")
+
+
+## Zapíše, kde hra právě je (obrazovka, kraj, čas v bitvě…).
+func crumb(values: Dictionary) -> void:
+	for k in values.keys():
+		crumbs[k] = values[k]
+	_write_session("running")
+
+
+func session_end() -> void:
+	_write_session("closed")
+
+
+func _write_session(state: String) -> void:
+	var d := crumbs.duplicate()
+	d["state"] = state
+	d["version"] = str(ProjectSettings.get_setting("application/config/version", ""))
+	d["uptime"] = Time.get_ticks_msec() / 1000
+	d["mem_mb"] = snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1)
+	d["tex_mb"] = snappedf(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0, 0.1)
+	d["nodes"] = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+	d["fps"] = Engine.get_frames_per_second()
+	d["quality"] = setting("quality") if not data.is_empty() else ""
+	var f := FileAccess.open(SESSION_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(d))
+
+
+func _check_last_session() -> void:
+	if FileAccess.file_exists(SESSION_PATH):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(SESSION_PATH))
+		if parsed is Dictionary and parsed.get("state", "") == "running":
+			crash_report = parsed
+			crash_report["log"] = _last_log_errors()
+			add_stat("crashes", 1)
+			save_game()
+	_write_session("running")
+
+
+## Poslední chybové hlášky z minulého běhu (Godot při startu starý log přejmenuje).
+func _last_log_errors() -> Array:
+	var dir := DirAccess.open("user://logs")
+	if dir == null:
+		return []
+	var newest := ""
+	for f in dir.get_files():
+		if f.begins_with("godot") and f.ends_with(".log") and f != "godot.log" and f > newest:
+			newest = f
+	if newest == "":
+		return []
+	var lines := FileAccess.get_file_as_string("user://logs/" + newest).split("\n")
+	var out := []
+	for l in lines:
+		if "ERROR" in l or "error" in l:
+			out.append(l.strip_edges().substr(0, 110))
+	return out.slice(maxi(0, out.size() - 4))
 
 
 func default_data() -> Dictionary:

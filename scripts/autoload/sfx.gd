@@ -11,9 +11,10 @@ var music_player: AudioStreamPlayer
 var want_music := ""
 var generating := {}
 var music_queue: Array = []
-var music_thread: Thread
-var music_mutex := Mutex.new()
+var music_busy := false
 
+## Zvyš, když se změní skladby: hudba uložená v telefonu se pak složí znovu.
+const MUSIC_VERSION := 1
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -99,45 +100,53 @@ func start_music(kind: String) -> void:
 	_prepare_music(kind)
 
 
-## Hudba se generuje postupně v jednom vlákně na pozadí, aby hra nezamrzla.
+## Hudba se skládá v hlavním vlákně po kouscích (jedna doba za snímek), aby hra
+## nezamrzla. Vlákna na pozadí dřív na telefonu poškozovala paměť, proto žádná nejsou.
+## Hotová smyčka se uloží do user:// a při dalším spuštění se jen načte.
 func _prepare_music(kind: String) -> void:
 	if generating.has(kind) or streams.has("music_" + kind):
 		return
 	generating[kind] = true
-	music_mutex.lock()
 	music_queue.append(kind)
-	music_mutex.unlock()
-	if music_thread == null:
-		music_thread = Thread.new()
-		music_thread.start(_music_worker)
+	if not music_busy:
+		_music_loop()
 
 
-func _music_worker() -> void:
-	while true:
-		music_mutex.lock()
-		var kind: String = music_queue.pop_front() if not music_queue.is_empty() else ""
-		music_mutex.unlock()
-		if kind == "":
-			break
-		var w := _music(kind)
-		_music_ready.call_deferred(kind, w)
-	_music_done.call_deferred()
+func _music_loop() -> void:
+	music_busy = true
+	while not music_queue.is_empty():
+		var kind: String = music_queue.pop_front()
+		var w := _load_music(kind)
+		if w == null:
+			w = await _music(kind)
+			_save_music(kind, w)
+		_music_ready(kind, w)
+	music_busy = false
 
 
-func _music_done() -> void:
-	if music_thread:
-		music_thread.wait_to_finish()
-		music_thread = null
-	if not music_queue.is_empty():
-		music_thread = Thread.new()
-		music_thread.start(_music_worker)
+func _music_path(kind: String) -> String:
+	return "user://music_%s_v%d.pcm" % [kind, MUSIC_VERSION]
 
 
-func _exit_tree() -> void:
-	music_queue.clear()
-	if music_thread:
-		music_thread.wait_to_finish()
-		music_thread = null
+func _load_music(kind: String) -> AudioStreamWAV:
+	var path := _music_path(kind)
+	if not FileAccess.file_exists(path):
+		return null
+	var bytes := FileAccess.get_file_as_bytes(path)
+	if bytes.size() < RATE:
+		return null
+	return _wav_from_bytes(bytes, true)
+
+
+## Zápis přes dočasný soubor, aby po nečekaném ukončení nezůstala useknutá hudba.
+func _save_music(kind: String, w: AudioStreamWAV) -> void:
+	var path := _music_path(kind)
+	var f := FileAccess.open(path + ".tmp", FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_buffer(w.data)
+	f.close()
+	DirAccess.rename_absolute(path + ".tmp", path)
 
 
 func _music_ready(kind: String, w: AudioStreamWAV) -> void:
@@ -166,6 +175,24 @@ func _wav(samples: PackedFloat32Array, loop: bool = false) -> AudioStreamWAV:
 	bytes.resize(samples.size() * 2)
 	for i in samples.size():
 		bytes.encode_s16(i * 2, int(clampf(samples[i], -1.0, 1.0) * 32000.0))
+	return _wav_from_bytes(bytes, loop)
+
+
+## Totéž jako _wav, ale převod rozloží do více snímků (dlouhé hudební smyčky).
+func _wav_async(samples: PackedFloat32Array, loop: bool) -> AudioStreamWAV:
+	var bytes := PackedByteArray()
+	bytes.resize(samples.size() * 2)
+	var i := 0
+	while i < samples.size():
+		var end := mini(i + 20000, samples.size())
+		for j in range(i, end):
+			bytes.encode_s16(j * 2, int(clampf(samples[j], -1.0, 1.0) * 32000.0))
+		i = end
+		await get_tree().process_frame
+	return _wav_from_bytes(bytes, loop)
+
+
+func _wav_from_bytes(bytes: PackedByteArray, loop: bool) -> AudioStreamWAV:
 	var w := AudioStreamWAV.new()
 	w.format = AudioStreamWAV.FORMAT_16_BITS
 	w.mix_rate = RATE
@@ -174,7 +201,7 @@ func _wav(samples: PackedFloat32Array, loop: bool = false) -> AudioStreamWAV:
 	if loop:
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_begin = 0
-		w.loop_end = samples.size()
+		w.loop_end = bytes.size() / 2
 	return w
 
 
@@ -292,9 +319,79 @@ func _build() -> void:
 	b = PackedFloat32Array()
 	_tone(b, 0, 0.25, 160, 160, "sq", 0.15, 0.002, 0.3); _tone(b, 0.3, 0.25, 160, 160, "sq", 0.15, 0.002, 0.3)
 	streams["warn"] = _wav(b)
+	_build_hazards()
+
+
+## Zvuky nástrah krajů.
+func _build_hazards() -> void:
+	var b := PackedFloat32Array()
+	for k in 2:
+		var t0 := k * 0.2
+		_tone(b, t0, 0.55, 1318.5, 1318.5, "sin", 0.35, 0.001, 2.2)
+		_tone(b, t0, 0.55, 1975.5, 1975.5, "sin", 0.18, 0.001, 2.6)
+		_tone(b, t0, 0.3, 2637.0, 2637.0, "sin", 0.08, 0.001, 3.0)
+	streams["zvonek"] = _wav(b)
+	b = PackedFloat32Array()
+	var fan := [[392.0, 0.0, 0.12], [523.25, 0.13, 0.12], [659.25, 0.26, 0.12], [783.99, 0.39, 0.12], [659.25, 0.52, 0.1], [783.99, 0.63, 0.45]]
+	for n in fan:
+		_tone(b, n[1], n[2] + 0.05, n[0], n[0], "saw", 0.16, 0.01, 0.6)
+		_tone(b, n[1], n[2] + 0.05, n[0] * 2.0, n[0] * 2.0, "sq", 0.04, 0.01, 0.8)
+	streams["trubka"] = _wav(b)
+	b = PackedFloat32Array()
+	for i in 10:
+		var t := i * 0.16 + (0.05 if i % 2 == 1 else 0.0)
+		_noise(b, t, 0.06, 0.45, 0.08, 2.0)
+		_tone(b, t, 0.07, 90, 50, "sin", 0.5, 0.001, 2.0)
+	streams["dusot"] = _wav(b)
+	b = PackedFloat32Array()
+	_swell(b, 0.0, 2.2, 0.7, 0.04)
+	_swell(b, 0.3, 1.6, 0.35, 0.12)
+	streams["vitr"] = _wav(b)
+	b = PackedFloat32Array()
+	_swell(b, 0.0, 0.9, 0.8, 0.5)
+	_tone(b, 0.0, 0.6, 70, 140, "sin", 0.35, 0.02, 1.5)
+	streams["gejzir"] = _wav(b)
+	b = PackedFloat32Array()
+	_tone(b, 0.0, 1.8, 55, 60, "saw", 0.22, 0.1, 0.6)
+	_tone(b, 0.0, 1.8, 57, 62, "saw", 0.18, 0.1, 0.6)
+	_swell(b, 0.0, 1.8, 0.25, 0.15)
+	streams["kombajn"] = _wav(b)
+	b = PackedFloat32Array()
+	_tone(b, 0.0, 0.14, 640, 220, "sin", 0.5, 0.001, 1.5)
+	streams["plop"] = _wav(b)
+	b = PackedFloat32Array()
+	for i in 14:
+		_noise(b, i * 0.05 + randf() * 0.03, 0.03, 0.4, 0.9, 2.5)
+	_swell(b, 0.0, 0.8, 0.3, 0.3)
+	streams["praskani"] = _wav(b)
+	b = PackedFloat32Array()
+	_swell(b, 0.0, 1.4, 0.6, 0.06)
+	_tone(b, 0.0, 1.4, 62, 48, "sin", 0.45, 0.1, 0.8)
+	streams["valeni"] = _wav(b)
+	b = PackedFloat32Array()
+	_swell(b, 0.0, 0.7, 0.5, 0.25)
+	_tone(b, 0.0, 0.5, 300, 180, "sin", 0.12, 0.05, 1.0)
+	streams["spory"] = _wav(b)
+
+
+## Šum, který plynule zesílí a zeslábne (vítr, pára, motor).
+func _swell(buf: PackedFloat32Array, start: float, dur: float, vol: float, lp: float) -> void:
+	var s0 := int(start * RATE)
+	var n := int(dur * RATE)
+	if buf.size() < s0 + n:
+		buf.resize(s0 + n)
+	var y := 0.0
+	var st := int(start * 7919.0 + dur * 104729.0 + lp * 1000.0) | 1
+	for i in n:
+		var t := float(i) / n
+		st = (st * 1103515245 + 12345) & 0x7fffffff
+		var r := float(st) / 1073741823.5 - 1.0
+		y += (r - y) * lp
+		buf[s0 + i] += y * vol * sin(t * PI)
 
 
 ## Jednoduchá smyčka hudby: basa + bicí + melodie v pentatonice.
+## Skládá se po dobách (po každé počká na další snímek).
 func _music(kind: String) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = {"map": 77, "battle": 99, "boss": 13}.get(kind, 5)
@@ -331,5 +428,6 @@ func _music(kind: String) -> AudioStreamWAV:
 				if rng.randf() < 0.5:
 					var f2: float = root * 4.0 * scale[rng.randi() % scale.size()]
 					_tone(b, t + beat * 0.5, beat * 0.45, f2, f2, "sq", 0.05, 0.005, 1.2)
+			await get_tree().process_frame
 	b.resize(int(total * RATE))
-	return _wav(b, true)
+	return await _wav_async(b, true)

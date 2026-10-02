@@ -42,6 +42,7 @@ var weapons: WeaponSystem
 var projectiles: ProjectileSystem
 var pickups: PickupSystem
 var director: Director
+var hazards: HazardSystem
 var boss: Boss = null
 
 var stats := {}
@@ -80,13 +81,16 @@ func _ready() -> void:
 	region = Regions.get_region(region_id)
 	tier = Game.tier_for(region_id)
 	duration = Regions.duration_for_tier(tier)
-	for a in OS.get_cmdline_user_args():
+	var args := OS.get_cmdline_user_args()
+	for a in args:
 		if a == "--autoplay":
 			autoplay = true
-		if a.begins_with("--duration="):
-			duration = float(a.substr(11))
 		if a.begins_with("--tier="):
 			tier = int(a.substr(7))
+			duration = Regions.duration_for_tier(tier)
+	for a in args:
+		if a.begins_with("--duration="):
+			duration = float(a.substr(11))
 	_build_layers()
 	await _bake()
 	_start()
@@ -107,6 +111,8 @@ func _build_layers() -> void:
 	ground_mat.set_shader_parameter("col_b", Color(g.b))
 	ground_mat.set_shader_parameter("col_c", Color(g.c))
 	ground_mat.set_shader_parameter("quality", 0 if low_quality else 1)
+	# rybníky a praskliny kreslí nástraha kraje, ne shader
+	ground_mat.set_shader_parameter("hazard_off", 1 if HazardDefs.get_for(region_id).get("shader_off", false) else 0)
 	ground.material = ground_mat
 	world.add_child(ground)
 	ground_fx_layer = Node2D.new()
@@ -158,6 +164,7 @@ func _bake() -> void:
 		jobs.append({"key": "fx:" + id, "size": FxArt.size_of(id), "fn": func(ci, tt): FxArt.draw(ci, id, tt), "t": 1.0 if id == "chest" else 0.0})
 	for id in region.decor + ["kul"]:
 		jobs.append({"key": "prop:" + id, "size": PropArt.size_of(id), "fn": func(ci, tt): PropArt.draw(ci, id, tt), "origin": PropArt.origin_of(id)})
+	jobs.append_array(HazardSystem.bake_jobs(region_id))
 	jobs.append_array(Main.icon_jobs())
 	await Baker.bake_many(jobs)
 
@@ -178,6 +185,9 @@ func _start() -> void:
 	director = Director.new()
 	add_child(director)
 	director.init(self)
+	hazards = HazardSystem.new()
+	add_child(hazards)
+	hazards.init(self)
 	player = Player.new()
 	entity_layer.add_child(player)
 	player.init(self)
@@ -287,6 +297,8 @@ func _process(delta: float) -> void:
 	delta = minf(delta, 1.0 / 30.0)
 	if autoplay and int(time_total / 10.0) != int((time_total + delta) / 10.0):
 		print("[t=%5.1f] stav=%d lvl=%d hp=%d/%d zabito=%d nepřátel=%d zbraně=%s boss=%s" % [time_total + delta, state, level, int(player.hp), int(player.max_hp), kills, enemies.count(), str(weapons.weapons.map(func(w): return "%s%d" % [w.id, w.level])), ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-"])
+	if int(time_total * 0.5) != int((time_total + delta) * 0.5):
+		Game.crumbs["battle"] = "%s %d:%02d, úroveň %d, nepřátel %d%s" % [State.keys()[state], int(elapsed) / 60, int(elapsed) % 60, level, enemies.count(), (", boss %d %%" % int(100.0 * maxf(0.0, boss.hp) / boss.max_hp)) if boss else ""]
 	time_total += delta
 	if state == State.PLAY or state == State.BOSS or state == State.BOSS_INTRO:
 		if state == State.PLAY:
@@ -302,6 +314,7 @@ func _process(delta: float) -> void:
 		projectiles.update(delta)
 		pickups.update(delta)
 		director.update(delta)
+		hazards.update(delta)
 		if state == State.PLAY and elapsed >= duration:
 			start_boss()
 		if pending_levelups > 0 or pending_chests > 0:
@@ -351,12 +364,16 @@ func _update_chunks(force: bool) -> void:
 			var k := Vector2i(cx, cy)
 			keep[k] = true
 			if not chunks.has(k):
-				chunks[k] = _make_chunk(k)
+				var nodes: Array = hazards.make_chunk(k) if hazards else []
+				chunks[k] = nodes + _make_chunk(k)
 	for k in chunks.keys():
 		if not keep.has(k):
 			for s in chunks[k]:
-				s.queue_free()
+				if is_instance_valid(s):
+					s.queue_free()
 			chunks.erase(k)
+			if hazards:
+				hazards.drop_chunk(k)
 
 
 func _make_chunk(k: Vector2i) -> Array:
@@ -386,6 +403,10 @@ func _make_chunk(k: Vector2i) -> Array:
 			if pick <= 0.0:
 				id = decor[j]
 				break
+		if hazards and not hazards.decor_ok(id, pos):
+			continue
+		if hazards:
+			hazards.register_prop(k, id, pos)
 		var s := Baker.sprite("prop:" + id)
 		s.position = pos
 		if rng.randf() < 0.5:
@@ -823,7 +844,7 @@ func _build_palisade() -> void:
 		tw.tween_property(s, "scale:y", s.scale.x, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	for k in chunks.keys():
 		for s in chunks[k]:
-			if is_instance_valid(s) and s.position.distance_to(arena_center) < arena_radius + 40.0:
+			if is_instance_valid(s) and s.get_parent() != ground_fx_layer and s.position.distance_to(arena_center) < arena_radius + 40.0:
 				s.modulate.a = 0.0
 
 
@@ -878,6 +899,7 @@ func win() -> void:
 		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d" % [stars, total, time_total, boss_time, level, kills])
 		if "--quit-at-end" in OS.get_cmdline_user_args():
 			get_tree().quit()
+		_soak_leave()
 
 
 func lose() -> void:
@@ -899,6 +921,16 @@ func lose() -> void:
 		print("PROHRA: čas=%.0f lvl=%d zabito=%d boss=%s" % [time_total, level, kills, ("%d/%d" % [int(boss.hp), int(boss.max_hp)]) if boss else "-"])
 		if "--quit-at-end" in OS.get_cmdline_user_args():
 			get_tree().quit()
+		_soak_leave()
+
+
+## Zátěžový test (--soak): po konci bitvy se sám vrátí na mapu.
+func _soak_leave() -> void:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--soak="):
+			await get_tree().create_timer(1.0, true).timeout
+			leave("map")
+			return
 
 
 func pause_game() -> void:
@@ -919,12 +951,15 @@ func resume_game() -> void:
 func leave(action: String) -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
+	# kresby nepřátel, bosse, dekorací a nástrah tohoto kraje se při dalším
+	# vstupu upečou znovu; ikony, hrdina a efekty zůstávají
+	Baker.purge(["e:", "b:", "prop:", "hz:"])
 	finished.emit(action)
 
 
-func banner(text: String, col: Color, sub: String = "") -> void:
+func banner(text: String, col: Color, sub: String = "", dur: float = 2.4) -> void:
 	if hud:
-		hud.banner(text, col, sub)
+		hud.banner(text, col, sub, dur)
 
 
 func time_left() -> float:
@@ -1016,6 +1051,22 @@ func _autopilot() -> Vector2:
 		var dw: Vector2 = pp - w.pos
 		if dw.length() < w.r + 30.0:
 			push += dw.normalized() * 2.0
+	# pruhy nástrah (sudy, koně, tramvaj, kombajn) a nebezpečná místa
+	var lanes := []
+	for l in ground_fx.lines:
+		lanes.append([l.pos, l.pos + l.dir * l.len, l.w * 0.5])
+	lanes.append_array(hazards.danger_lanes())
+	for ln in lanes:
+		var cp := Geometry2D.get_closest_point_to_segment(pp, ln[0], ln[1])
+		var dv := pp - cp
+		if dv.length() < ln[2] + 50.0:
+			var a: Vector2 = ln[0]
+			var e2: Vector2 = ln[1]
+			push += (dv.normalized() if dv.length() > 1.0 else (e2 - a).normalized().orthogonal()) * 3.0
+	for z in hazards.dangers():
+		var dz: Vector2 = pp - z[0]
+		if dz.length() < z[1] + 40.0:
+			push += dz.normalized() * 2.0
 	if player.hp < player.max_hp * 0.5 and player.can_dash() and push.length() > 2.0:
 		player.dash()
 	if ult >= 1.0:

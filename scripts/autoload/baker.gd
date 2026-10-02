@@ -32,6 +32,17 @@ func tex(key: String) -> Texture2D:
 	return cache.get(key)
 
 
+## Uvolní kresby s danými předponami (kresby kraje po odchodu z bitvy),
+## aby grafická paměť nerostla s každým navštíveným krajem.
+func purge(prefixes: Array) -> void:
+	for k: String in cache.keys():
+		for p: String in prefixes:
+			if k.begins_with(p):
+				cache.erase(k)
+				origins.erase(k)
+				break
+
+
 ## jobs: pole slovníků {key, size: Vector2 (v jednotkách kresby), fn: Callable(ci, t), t, origin}
 ## origin = poloha bodu (0,0) kresby na plátně v poměru 0–1 (výchozí střed).
 func bake_many(jobs: Array) -> void:

@@ -16,8 +16,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
-func banner(text: String, col: Color, sub: String = "") -> void:
-	banners.append({"text": text, "col": col, "sub": sub, "t": 0.0})
+func banner(text: String, col: Color, sub: String = "", dur: float = 2.4) -> void:
+	banners.append({"text": text, "col": col, "sub": sub, "t": 0.0, "dur": dur})
 	if banners.size() > 2:
 		banners.pop_front()
 
@@ -32,7 +32,7 @@ func _process(delta: float) -> void:
 		var i := banners.size() - 1
 		while i >= 0:
 			banners[i].t += delta
-			if banners[i].t > 2.4:
+			if banners[i].t > banners[i].dur:
 				banners.remove_at(i)
 			i -= 1
 		flash_a = maxf(0.0, flash_a - delta * 2.5)
@@ -92,8 +92,8 @@ func _draw() -> void:
 	# --- oznámení
 	var active := b.state == Battle.State.PLAY or b.state == Battle.State.BOSS or b.state == Battle.State.BOSS_INTRO
 	if active:
-		for bn in banners:
-			_draw_banner(bn, vs)
+		for i in banners.size():
+			_draw_banner(banners[i], vs, i)
 	if flash_a > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, vs), Color(1, 1, 0.85, flash_a * 0.6))
 	# vinětace při nízkých životech
@@ -144,13 +144,14 @@ func _boss_bar(cx: float, top: float) -> void:
 		draw_line(Vector2(x, r.position.y + 3), Vector2(x, r.end.y - 3), Color(0, 0, 0, 0.5), 2.0)
 
 
-func _draw_banner(bn: Dictionary, vs: Vector2) -> void:
+## Víc oznámení naráz se skládá pod sebe.
+func _draw_banner(bn: Dictionary, vs: Vector2, idx: int = 0) -> void:
 	var t: float = bn.t
 	var k := clampf(t / 0.25, 0.0, 1.0)
-	var out := clampf((t - 1.9) / 0.5, 0.0, 1.0)
+	var out := clampf((t - float(bn.dur) + 0.5) / 0.5, 0.0, 1.0)
 	var sc := 0.6 + 0.4 * (1.0 - pow(1.0 - k, 3)) + 0.06 * sin(clampf(t / 0.4, 0, 1) * PI)
 	var a := 1.0 - out
-	var c := Vector2(vs.x * 0.5, vs.y * 0.3)
+	var c := Vector2(vs.x * 0.5, vs.y * 0.3 + idx * 112.0)
 	var txt: String = bn.text
 	var fs := 46
 	var w := Art.text_width(txt, fs) + 80.0

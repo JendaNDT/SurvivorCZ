@@ -151,6 +151,7 @@ func update(delta: float) -> void:
 
 func _update_player_shots(delta: float) -> void:
 	var view: Rect2 = b.view_rect().grow(300.0)
+	var drift: Vector2 = b.hazards.shot_drift() if b.hazards else Vector2.ZERO
 	for p: Proj in shots.duplicate():
 		if not shots.has(p):
 			continue
@@ -167,7 +168,7 @@ func _update_player_shots(delta: float) -> void:
 				_free(p, shots)
 			continue
 		p.vel.y += p.grav * delta
-		p.pos += p.vel * delta
+		p.pos += (p.vel + (Vector2.ZERO if p.nohit else drift)) * delta
 		p.spr.position = p.pos
 		if p.spin != 0.0:
 			p.spr.rotation += p.spin * delta
@@ -199,11 +200,12 @@ func _update_player_shots(delta: float) -> void:
 
 func _update_enemy_shots(delta: float) -> void:
 	var pp: Vector2 = b.player.position
+	var drift: Vector2 = b.hazards.shot_drift() if b.hazards else Vector2.ZERO
 	for p: Proj in enemy_shots.duplicate():
 		if not enemy_shots.has(p):
 			continue
 		p.life -= delta
-		p.pos += p.vel * delta
+		p.pos += (p.vel + drift) * delta
 		p.spr.position = p.pos
 		p.spr.rotation += delta * 4.0 if p.kind in ["hvezda", "jiskra", "syr", "uhel", "hrnicek", "srdce"] else 0.0
 		if p.pos.distance_squared_to(pp) < pow(p.r + b.player.r * 0.8, 2):

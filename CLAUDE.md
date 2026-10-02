@@ -48,7 +48,11 @@ Výkon: `--bench` drží plný počet nepřátel a vypíše průměrné FPS, por
 
 - Nastavení čti přes `Game.setting(key)` a měň přes `Game.set_setting(key, value)` (vyšle `Game.setting_changed`). Nové klíče uložení přidej do `Game.default_data()`, starší uložení se doplní samo (`_deep_merge`).
 - Nové efekty a nepřátelé musí brát ohled na úspornou grafiku (`Battle.low_quality`, `Fx.low`, `EnemyManager.cap`).
-- GDScript ve více vláknech najednou (WorkerThreadPool) poškozoval paměť – na pozadí používej jedno `Thread`.
+- **Žádná vlákna.** Generování hudby ve vlákně na pozadí poškozovalo paměť a hra na telefonu padala. Dlouhé výpočty rozděl do snímků (`await get_tree().process_frame`), jako to dělá `Sfx._music`.
+- Nástrahy krajů: data v `scripts/data/hazards.gd`, logika v `scripts/battle/hazards.gd` (`HazardSystem`), kresby v `scripts/art/hazard_art.gd`. Vliv na pohyb jde přes `speed_mult()` a `push_at()`, geometrie v kouscích mapy přes `make_chunk()`/`drop_chunk()`. Test: `--hazard-now`.
+- Kresby kraje se po odchodu z bitvy uvolní (`Baker.purge`). Nové předpony klíčů pro kresby kraje přidej do `Battle.leave()`.
+- Černá skříňka: `Game.crumb({...})` zapíše, kde hra je. Když minule spadla, mapa ukáže hlášení (`--screen=crash` je ukázka).
+- Zátěžový test proti únikům paměti: `--soak=N --autoplay --duration=10` (vypisuje paměť, textury a uzly po každé bitvě).
 - Pole, ze kterých se během procházení může mazat (střely, zóny), procházej přes `.duplicate()`.
 
 ## Na konci každé session

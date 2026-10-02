@@ -62,7 +62,30 @@ Když se první bitva seká (pod 40 snímků za sekundu), hra po návratu na map
 | Zlínský | Valašsko, roubenky, švestky | švestka, baťovka, Valach s valaškou | **Obří bota** |
 | Moravskoslezský | ocelárny, struska, komíny | hutník, rozžhavený ingot, tatrovka | **Vysokopecní titán** |
 
-Každý kraj má vlastní texturu země (tráva s cestičkami, dlažba, hlína, sníh, les, vinice, plech se žhavými prasklinami, pole, louka s tůňkami) a vlastní dekorace.
+Každý kraj má vlastní texturu země (tráva s cestičkami, dlažba, hlína, sníh, les, vinice, plech, pole, louka) a vlastní dekorace.
+
+### Nástrahy krajů
+
+Každý kraj má jednu nástrahu. Ublíží nepřátelům stejně jako hrdinovi (běžné nepřátele zabije), takže se vyplatí hordu do ní nalákat. Při prvním výskytu ji vysvětlí stuha. Nebezpečné místo se vždy předem ukáže červeně na zemi.
+
+| Kraj | Nástraha | Jak funguje |
+| --- | --- | --- |
+| Karlovarský | Gejzíry | Pára zraní a odhodí, na jejím místě chvíli zůstane horký pramen, který léčí. |
+| Plzeňský | Valící se sudy | Pruhem přes obrazovku se skutálí tři sudy. |
+| Ústecký | Pásové dopravníky | Pás unáší hrdinu i nepřátele, z jeho konce padá uhlí. |
+| Liberecký | Jizerská mlha | Na 12 s je vidět jen kolem hrdiny, krystaly v mlze svítí. |
+| Královéhradecký | Krakonošova vánice | Všichni zpomalí, kdo stojí na místě, mrzne. |
+| Pardubický | Dostih | Pruhem proběhnou čtyři koně s žokeji. |
+| Středočeský | Hradní katapult | Dopadne kámen, kráter pak chvíli zpomaluje. |
+| Praha | Tramvaj | Po kolejích projede tramvaj, ohlásí se zvonkem. |
+| Jihočeský | Rybníky | Brodění zpomaluje, kapři a vodníci jsou ve vodě rychlejší. |
+| Vysočina | Houbové spory | Kruhy hub vypouštějí jedovatý oblak. |
+| Jihomoravský | Vichr z Pálavy | Vítr tlačí hrdinu, nepřátele i střely, směr ukáže šipka. |
+| Olomoucký | Kombajn | Projede pruhem a nechá za sebou balíky slámy. |
+| Zlínský | Padající švestky | Švestka hrdinu vyléčí, nepřítel na ní uklouzne. |
+| Moravskoslezský | Žhavé praskliny | Z praskliny vytryskne železo a chvíli pak pálí. |
+
+V aréně bosse běží jen počasí (mlha, vánice, vítr) a terén (pásy, rybníky), ostatní nástrahy se vypnou.
 
 ## Zbraně a evoluce
 
@@ -87,7 +110,7 @@ Pasivní předměty mají vzácnost (běžná, vzácná, epická, legendární),
 - Postavy, nepřátelé, bossové, dekorace, střely a ikony jsou funkce, které kreslí přes `CanvasItem` (`_draw`). Godot je pak jednou „upeče“ do textury ve dvojnásobném rozlišení (`scripts/autoload/baker.gd`). Hra díky tomu utáhne stovky nepřátel i na telefonu.
 - Země a moře jsou shadery (`shaders/*.gdshader`), které texturu trávy, kamenů, sněhu nebo vln počítají ze souřadnic.
 - Ikona aplikace je ručně napsané SVG (`icon.svg`).
-- Zvuky a hudba se syntetizují v kódu (`scripts/autoload/sfx.gd`).
+- Zvuky a hudba se syntetizují v kódu (`scripts/autoload/sfx.gd`). Hudba se při prvním spuštění skládá po kouscích a uloží se do telefonu, další spuštění ji jen načte.
 - Tvary krajů vycházejí z otevřených dat hranic krajů ČÚZK (RÚIAN), zjednodušených a převedených na souřadnice (`scripts/data/region_shapes.gd`).
 
 ## Projekt v Godotu
@@ -140,5 +163,9 @@ godot --path . -- --battle=STC --test-levelup                # okno s kartami (t
 godot --path . -- --battle=PHA --bench --quality=low         # plný počet nepřátel, po 13 s vypíše průměrné FPS (porovnání kvality)
 godot --path . -- --screen=settings --taps="485,229>700,229@2"   # nastavení a simulované tažení prstem
 godot --path . -- --battle=KVK --left-handed --show-fps      # nastavení jen pro jedno spuštění
-godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony)
+godot --path . -- --battle=PHA --hazard-now                  # nástraha kraje hned a pak každé 3 s
+godot --path . --fixed-fps 30 -- --soak=20 --autoplay --duration=10   # zátěžový test: 20 bitev za sebou, vypisuje paměť
+godot --path . -- --screen=crash                             # ukázka hlášení o pádu
+godot --path . res://scenes/dev/gallery.tscn -- --page=7     # kresby nástrah
+godot --path . res://scenes/dev/gallery.tscn -- --page=3      # galerie kreseb (0 hrdina, 1–2 nepřátelé, 3 bossové, 4–5 dekorace, 6 efekty a ikony, 7 nástrahy)
 ```

@@ -6,10 +6,10 @@ Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dob�
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Zahrát si verzi 1.1.0 na telefonu a poslat čísla z ukazatele FPS, pak milník M2 (nástrahy krajů).**
-V nastavení zapni „Ukazatel FPS“ a zahraj si kraj až do bosse. Napiš, kolik FPS ukazuje na začátku a ve chvíli, kdy je na obrazovce nejvíc nepřátel, jestli fungují vibrace a jestli je potřeba úsporná grafika. Celý plán vylepšení je v `docs/plan-vylepseni.md`. Než se pustíme do M8 a dalších, je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
+**Zahrát si verzi 1.2.0 na telefonu: nástrahy krajů a hlavně jestli hra ještě padá.**
+Když hra spadne, při dalším spuštění ukáže na mapě okno „Hra minule spadla“ s místem, pamětí a časem. Pošli mi jeho snímek. Pak milník M3 (minibossové). Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
 
-Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20 s. Po M1 automat vyhrál Karlovarsko (obtížnost 0), Jižní Moravu (7) i Moravskoslezsko (13), s vysokou i úspornou grafikou. Boss trval 35–90 s. Čísla obtížnosti jsou v `scripts/battle/battle.gd` (`enemy_hp_mult`, `enemy_dmg_mult`, `boss_dmg_mult`, HP bosse ve `start_boss`) a v `scripts/battle/director.gd` (`rate`).
+Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`.
 
 ## ✅ Hotovo
 - Mapa Česka se 14 kraji (skutečné hranice), odemykání sousedů, hvězdy, mlha nad zamčenými kraji, řeky, hory, hrady s vlajkou
@@ -30,11 +30,18 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
   - vibrace při zásahu, dopadu bossova útoku, hromu, nové úrovni, truhle a smrti bosse
   - uložení verze 2: starý postup se načte (ověřeno), vypnutý zvuk se převede na nulovou hlasitost, smazání postupu nastavení nechá
   - vývojářské parametry `--bench`, `--taps`, `--quality`, `--show-fps`, `--left-handed`, `--test-settings`, `--screen=settings|perf`
+- **M2 Nástrahy krajů (verze 1.2.0):** 14 mechanik (gejzíry, sudy, pásy, mlha, vánice, dostih, katapult, tramvaj, rybníky, spory, vítr, kombajn, švestky, praskliny), stuha s nápovědou při prvním výskytu, nové kresby (galerie strana 7) a 10 zvuků, automat se vyhýbá pruhům a nebezpečným místům
+- **Stabilita (verze 1.2.0):**
+  - hudba se už neskládá ve vlákně na pozadí (to dřív poškozovalo paměť), ale po kouscích v hlavním vlákně, a uloží se do telefonu
+  - kresby kraje se po bitvě uvolní: grafická paměť už neroste s každým krajem
+  - opravena chyba ve smyčce nepřátel, když výbuch zabil víc nepřátel naráz
+  - černá skříňka: po pádu mapa ukáže, kde a kdy k němu došlo, a hra zapisuje log i na telefonu
+  - zátěžový test `--soak=N`: 28 bitev za sebou bez úniku paměti
 
 ## 📝 TODO
 ### Plán vylepšení (podrobně v `docs/plan-vylepseni.md`)
 - ~~M1 Telefon a nastavení~~ hotovo
-- M2 Nástrahy krajů: 14 mechanik (gejzíry, tramvaj, vánice, kombajn…)
+- ~~M2 Nástrahy krajů~~ hotovo
 - M3 Minibossové: náčelník v polovině každého kraje
 - M4 Pocit z boje: nástup bosse, zastavení při zásahu, prach, smrti bossů
 - M5 Věděl jsi? a Kniha: fakta o krajích se zdroji, bestiář, odznaky
@@ -48,10 +55,9 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - Modulátory a fúze zbraní z design dokumentu
 
 ## 🐛 Známé bugy
-- Žádné potvrzené. Na skutečném telefonu zatím neověřené: výkon, vibrace a automatická nabídka úsporné grafiky.
-- Zlínsko na obtížnosti 11 je pro automatického hráče těžké: před M1 prohrál 4 ze 4 pokusů, po M1 vyhrál 3 z 5 (boss ho porazí těsně). Až si ho zahraješ, napiš, jestli je moc těžký.
-- Když telefon nestíhá 30 FPS, hra se zpomalí (krok simulace je omezený na 1/30 s). Úsporná grafika by to měla vyřešit.
-- Opraveno: generování hudby ve více vláknech najednou poškozovalo paměť (teď jedno vlákno).
+- **Hra občas spadne na plochu (verze 1.1.0).** Pravděpodobná příčina (hudba ve vlákně na pozadí) je ve verzi 1.2.0 odstraněná a grafická paměť už neroste. Jestli pády zmizely, ověří až hraní na telefonu. Kdyby ne, pomůže okno „Hra minule spadla“.
+- Zlínsko a Olomoucko na obtížnosti 11–12 vyhraje automat jen asi napůl (boss je těsně neporazí). Až si je zahraješ, napiš, jestli jsou moc těžké.
+- Když telefon nestíhá 30 FPS, hra se zpomalí (krok simulace je omezený na 1/30 s).
 - Opraveno: smrt bosse uprostřed zásahu jedovou kaluží mohla způsobit chybu indexu.
 
 ## 🏗️ Klíčová rozhodnutí
@@ -62,12 +68,14 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - **Podpisový klíč pro instalaci mimo obchod je v repozitáři** (`android/sideload.keystore`), aby šly nové verze instalovat přes staré. Pro Google Play je potřeba vlastní soukromý klíč.
 - **Úsporná grafika kreslí v základním rozlišení:** test ukázal, že hru brzdí vykreslování, ne herní logika (bez vykreslování 136 FPS). Text je pak o kousek méně ostrý.
 - **Plynulost se měří od 10. s do konce bitvy**, ne 5.–20. s jako v plánu, protože na začátku je nepřátel málo.
+- **Žádná vlákna na pozadí:** dlouhé výpočty se rozkládají do snímků. Vlákna v GDScriptu poškozovala paměť.
+- **Nástrahy ubližují i nepřátelům:** běžné nepřátele zabijí, takže jsou zbraní i hrozbou. V aréně bosse běží jen počasí a terén.
 
 ## 📁 Stav souborů
 - `scripts/main.gd` – přepínání obrazovek a vývojářské parametry
 - `scripts/autoload/` – kreslení (Art), pečení textur (Baker), uložení a nastavení (Game), zvuk (Sfx)
 - `scripts/data/` – kraje, nepřátelé, bossové, zbraně, vylepšení
 - `scripts/art/` – všechny kresby
-- `scripts/battle/` – logika bitvy
+- `scripts/battle/` – logika bitvy (`hazards.gd` = nástrahy krajů)
 - `scripts/map/`, `scripts/ui/` – mapa a uživatelské rozhraní (`settings_board.gd`, `cc_slider.gd`, `cc_toggle.gd`)
 - `shaders/` – země, moře, tráva na mapě

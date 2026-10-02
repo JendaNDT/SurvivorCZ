@@ -11,6 +11,7 @@ class_name Main
 ##   --screen=map|shop|settings|perf|ending   rovnou otevře danou obrazovku
 ##   --quality=low, --show-fps, --left-handed   nastavení jen pro toto spuštění
 ##   --bench           v bitvě drží plný počet nepřátel a vypíše průměrné FPS
+##   --soak=N          zátěžový test: N bitev za sebou (mapa → bitva → mapa), po každé vypíše paměť
 ##   --taps=640,300@3;100,200>400,200@4   ťuknutí (x,y@čas) a tažení (a>b@čas) pro test ovládání
 
 var current: Node
@@ -21,6 +22,8 @@ var shot_clock := 0.0
 var loading: Control
 var taps: Array = []
 var tap_clock := 0.0
+var soak := 0
+var soak_i := 0
 
 
 static func icon_jobs() -> Array:
@@ -62,6 +65,8 @@ func _ready() -> void:
 		elif a.begins_with("--shot-times="):
 			for t in a.substr(13).split(","):
 				shot_times.append(float(t))
+		elif a.begins_with("--soak="):
+			soak = int(a.substr(7))
 		elif a.begins_with("--taps="):
 			for item in a.substr(7).split(";"):
 				var parts := item.split("@")
@@ -93,9 +98,11 @@ func _ready() -> void:
 					Game.data.conquered[id] = 3
 	await Baker.bake_many(icon_jobs())
 	loading.queue_free()
-	if battle_id != "":
+	if soak > 0:
+		show_map(false)
+	elif battle_id != "":
 		start_battle(battle_id, false)
-	elif screen in ["shop", "settings", "perf"]:
+	elif screen in ["shop", "settings", "perf", "crash"]:
 		show_map(false, screen)
 	elif screen.begins_with("region:"):
 		show_map(false, screen)
@@ -141,6 +148,7 @@ func _notification(what: int) -> void:
 		if m.popup_layer.get_child_count() > 0:
 			m.close_popup()
 		else:
+			Game.session_end()
 			get_tree().quit()
 	elif current is EndingScreen:
 		show_map()
@@ -203,18 +211,33 @@ func _swap(node: Node, animate: bool) -> void:
 
 
 func show_map(animate: bool = true, open: String = "") -> void:
+	Game.crumb({"screen": "mapa", "region": "", "battle": ""})
 	var m := MapScreen.new()
 	m.open_on_start = open
 	m.attack.connect(func(id): start_battle(id))
 	m.ending.connect(func(): show_ending())
 	_swap(m, animate)
+	if soak > 0:
+		_soak_next()
 
 
 func start_battle(id: String, animate: bool = true) -> void:
+	Game.crumb({"screen": "bitva", "region": id, "battle": "načítání"})
 	var b := Battle.new()
 	b.region_id = id
 	b.finished.connect(_on_battle_finished.bind(id))
 	_swap(b, animate)
+
+
+func _soak_next() -> void:
+	await get_tree().create_timer(2.5).timeout
+	print("SOAK %d: paměť %.1f MB, textury %.1f MB, uzlů %d, objektů %d, sirotků %d, cache %d" % [soak_i, OS.get_static_memory_usage() / 1048576.0, Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0, Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT), Baker.cache.size()])
+	if soak_i >= soak:
+		get_tree().quit()
+		return
+	var id: String = Regions.ORDER[soak_i % Regions.ORDER.size()]
+	soak_i += 1
+	start_battle(id)
 
 
 func _on_battle_finished(action: String, id: String) -> void:
@@ -228,6 +251,7 @@ func _on_battle_finished(action: String, id: String) -> void:
 
 
 func show_ending(animate: bool = true) -> void:
+	Game.crumb({"screen": "závěr", "region": "", "battle": ""})
 	var e := EndingScreen.new()
 	e.done.connect(func(): show_map())
 	_swap(e, animate)

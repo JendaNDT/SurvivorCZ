@@ -9,6 +9,8 @@ uniform vec4 col_c : source_color = vec4(0.85, 0.8, 0.7, 1.0);
 uniform float time_s = 0.0;
 // 1 = plná kvalita, 0 = úsporná grafika (bez trsů trávy, méně šumu, jednodušší kameny)
 uniform int quality = 1;
+// 1 = rybníky (louka) a praskliny (plech) kreslí nástraha kraje, shader je vynechá
+uniform int hazard_off = 0;
 
 varying vec2 wpos;
 
@@ -195,9 +197,11 @@ void fragment() {
 		vec2 rv = abs(f - 0.5);
 		float rivet = smoothstep(0.022, 0.012, length(vec2(rv.x, rv.y) - vec2(0.42)));
 		col = mix(col, b * 1.3, rivet);
-		float crack = abs(fbm(w * 0.004 + 40.0) - 0.5);
-		float glow = smoothstep(0.012, 0.0, crack) * (0.75 + 0.25 * sin(time_s * 2.0 + w.x * 0.01));
-		col = mix(col, c, glow);
+		if (hazard_off == 0) {
+			float crack = abs(fbm(w * 0.004 + 40.0) - 0.5);
+			float glow = smoothstep(0.012, 0.0, crack) * (0.75 + 0.25 * sin(time_s * 2.0 + w.x * 0.01));
+			col = mix(col, c, glow);
+		}
 	} else if (pattern == 7) {
 		// pole: zlaté pruhy obilí
 		float stripe = 0.5 + 0.5 * sin((w.x + w.y * 0.35) * 0.06 + noise(w * 0.01) * 4.0);
@@ -211,7 +215,7 @@ void fragment() {
 		float stripe = step(0.5, fract(w.x / 220.0));
 		col *= 0.95 + 0.07 * stripe;
 		float pond = fbm(w * 0.0022 + 2.0);
-		if (pond > 0.66) {
+		if (hazard_off == 0 && pond > 0.66) {
 			vec3 water = c * (0.9 + 0.15 * sin(time_s * 1.5 + w.x * 0.03 + w.y * 0.02));
 			float edge = smoothstep(0.66, 0.675, pond);
 			col = mix(col * 0.7, water, edge);
