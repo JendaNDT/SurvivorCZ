@@ -52,6 +52,7 @@ func bake_many(jobs: Array) -> void:
 			todo.append(j)
 	if todo.is_empty():
 		return
+	Game.note("pečení %d kreseb (%s…)" % [todo.size(), todo[0].key])
 	if headless:
 		for j in todo:
 			var img := Image.create(4, 4, false, Image.FORMAT_RGBA8)
@@ -89,6 +90,7 @@ func bake_many(jobs: Array) -> void:
 			cache[pair[0].key] = ImageTexture.create_from_image(img)
 			origins[pair[0].key] = pair[0].get("origin", Vector2(0.5, 0.5))
 			vp.queue_free()
+	Game.note("pečení hotovo")
 
 
 ## Sprite z upečené textury (měřítko vrací kresbu do původní velikosti).

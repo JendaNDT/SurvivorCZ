@@ -186,6 +186,7 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func select(id: String) -> void:
+	Game.note("kraj " + id)
 	selected = id
 	Sfx.play("click", -4.0)
 	live.queue_redraw()
@@ -278,6 +279,7 @@ func show_region(id: String) -> void:
 
 
 func show_shop() -> void:
+	Game.note("zbrojnice")
 	var dim := _modal()
 	var shop := MapUI.ShopBoard.new()
 	shop.m = self
@@ -290,6 +292,7 @@ func show_shop() -> void:
 
 
 func show_settings() -> void:
+	Game.note("nastavení")
 	_modal()
 	var board := SettingsBoard.make(true)
 	board.size.y = minf(board.size.y, size.y - 16)
