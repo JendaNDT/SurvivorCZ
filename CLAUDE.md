@@ -33,6 +33,8 @@ Události v boji (M7): data `scripts/data/events.gd`, logika `EventSystem` (scri
 
 Hrdinové (M8): data `scripts/data/heroes.gd` (`HeroDefs`: startovní zbraň, `mods`, ultimátka, podmínka odemčení), kresby `HeroArt.draw(ci, t, id)` (klíče `hero:<id>:0/1`, portréty `icon:hero_<id>` z `Main.icon_jobs`). `Battle.hero_id` se bere z `Game.hero()` nebo z `--hero=`, vlastnosti započítá `recalc_stats()`, ultimátky jsou v `Battle.use_ult()` (`_ult_hrom/_ult_stomp/_ult_freeze/_ult_leap`), Horymírův úskok a skok v `Player`. Odemykání: `Game.check_hero_unlocks()` po výhře i při otevření mapy, uložení `data.heroes` (selected, unlocked, seen).
 
+Hra po dohrání (M9): data `scripts/data/modifiers.gd` (`ModifierDefs`: žár 1–10, modifikátory denní výzvy, odměny). `Battle.heat` (z `Game.heat()`, test `--heat=N`) čtou `enemy_hp_mult()`, `enemy_speed_mult()`, `boss_hp()`, `heal()`, `recalc_stats()`, `Director._build_events()`, `HazardSystem` a `Boss` (4. fáze). Denní výzva: `Game.daily_info(datum)` (semínko z data), `Game.daily_run` během bitvy, `Battle.mods` a `has_mod()`, výsledek `Game.daily_result()`. Nekonečný boj: `Battle.start_endless()` po výhře, `endless_t`, náčelník každé 2 minuty, konec v `_end_endless()`. Uložení: `data.heat`, `data.endless`, `data.daily`.
+
 ## Testování
 
 ```bash

@@ -6,10 +6,11 @@ Survivor strategie pro Android ve stylu Vampire Survivors: hrdina postupně dob�
 Stack: Godot 4.5, GDScript, renderer GL Compatibility, export do APK (bez Gradle).
 
 ## ⏭️ Příští krok
-**Milníky M7–M9 (události, hrdinové, hra po dohrání), M5 a M6 jsou zatím odložené.** Po M7 přijde M8 (hrdinové) a M9 (žár, nekonečný režim, denní výzva).
+**Zahrát si verzi 1.7.0 (události, hrdinové, žár, nekonečný boj, denní výzva) a napsat, co sedí a co ne. Pak zbývá M5 (Věděl jsi? a Kniha), M6 (hudba podle oblasti) a M10 (Google Play).**
+Hlavně: jestli jsou události v boji zábavné, jestli jsou hrdinové vyrovnaní (automat: Bivoj nejsilnější, Horymír nejslabší), jak těžký je žár a jak dlouho vydržíš v nekonečném boji.
 Hlavně: jestli zastavení při kritickém zabití (nejvýš jednou za sekundu) nepůsobí jako zasekávání, jestli je vidět prach pod nohama a jestli výhra po smrti bosse (asi 2,5 s) nepřichází moc pozdě. Pořád platí otázka z 1.3.0: jak silní jsou náčelníci. Celý plán je v `docs/plan-vylepseni.md`. Před M8 je potřeba odpovědět na otevřená rozhodnutí na konci plánu.
 
-Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. S náčelníky (M3) vyhrál 23 z 28 bitev (každý kraj dvakrát), náčelník padl za 10–54 s. Ve verzi 1.4.0 vyhrál 24 z 28 (prohry jen Olomoucko a Zlínsko), krátkých zastavení bylo 28–98 za bitvu. S událostmi (1.5.0) taky 24 z 28. Hrdinové na Zlínsku a Ostravsku (po 8 bitvách): Bivoj 7, Čech 5, Libuše 5, Horymír 4. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`, náčelníci v `scripts/data/enemies.gd` (`MINIBOSSES`) a `scripts/battle/mini_boss.gd`.
+Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--headless --fixed-fps 30 … --autoplay --quit-at-end`) zvládne celý kraj za ~20–40 s. S nástrahami automat vyhrál 11 ze 14 krajů napoprvé a po opravě testovacího nástroje (délka kraje teď odpovídá obtížnosti) i Pardubicko, Vysočinu, Olomoucko a Zlínsko na vysoké obtížnosti. Boss trvá 35–95 s. S náčelníky (M3) vyhrál 23 z 28 bitev (každý kraj dvakrát), náčelník padl za 10–54 s. Ve verzi 1.4.0 vyhrál 24 z 28 (prohry jen Olomoucko a Zlínsko), krátkých zastavení bylo 28–98 za bitvu. S událostmi (1.5.0) taky 24 z 28. Hrdinové na Zlínsku a Ostravsku (po 8 bitvách): Bivoj 7, Čech 5, Libuše 5, Horymír 4. Žár na nejvyšší obtížnosti se Zbrojnicí na 5: žár 5 vyhrál 5 z 6, žár 10 jen 1 z 6. Nekonečný boj automat vydržel 5–11 minut, denní výzvy 4 ze 4. Čísla obtížnosti jsou v `scripts/battle/battle.gd` a `scripts/battle/director.gd`, nástrahy v `scripts/data/hazards.gd`, náčelníci v `scripts/data/enemies.gd` (`MINIBOSSES`) a `scripts/battle/mini_boss.gd`.
 
 ## ✅ Hotovo
 - Mapa Česka se 14 kraji (skutečné hranice), odemykání sousedů, hvězdy, mlha nad zamčenými kraji, řeky, hory, hrady s vlajkou
@@ -30,6 +31,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
   - vibrace při zásahu, dopadu bossova útoku, hromu, nové úrovni, truhle a smrti bosse
   - uložení verze 2: starý postup se načte (ověřeno), vypnutý zvuk se převede na nulovou hlasitost, smazání postupu nastavení nechá
   - vývojářské parametry `--bench`, `--taps`, `--quality`, `--show-fps`, `--left-handed`, `--test-settings`, `--screen=settings|perf`
+- **M9 Po dohrání (verze 1.7.0):** žár 1–10 (volič vpravo dole na mapě po dobytí celého Česka, úrovně se sčítají, +20 % zlata za úroveň, výhra odemkne další, plamínek u kraje), nekonečný boj po každém bossovi („Bojovat dál“, sílící vlny, náčelník každé 2 minuty, rekord kraje v kartě), denní výzva (tlačítko vlevo dole: kraj, hrdina a 2 modifikátory podle data, 100 zlata a série až +70). Testy `--heat=N`, `--endless`, `--daily=RRRR-MM-DD`, `--daily-run`, `--screen=daily`
 - **M8 Hrdinové (verze 1.6.0):** Čech (meč, Hrom), Bivoj (štíty, +30 % životů a odhozu, Kančí úder s omráčením), kněžna Libuše (blesk a aura, +20 % zkušeností, Věštba zmrazí nepřátele), Horymír a Šemík (kuše a sekera, rychlejší, zraňující úskok, Skok s dopadem). Vlastní kresby a portréty, deska Hrdinové (fialové tlačítko vedle loga, „Změnit“ v kartě kraje), odemykání za 3 bosse, Prahu a 20 hvězd se stuhou na mapě. Testy `--hero=ID`, `--test-ult`, `--unlock-heroes`, `--screen=heroes`, galerie strana 0
 - **M7 Události v boji (verze 1.5.0):** ve 30 % a 65 % času se kousek od hrdiny objeví oltář (oběť životů nebo zlata za legendární či epickou kartu), boží muka (5 s v kruhu = požehnání na minutu), prokletý obelisk (kletba: 3 elity a vlna, za ně legendární truhla), kramář s vozíkem (svíčková, přehození, vzácná karta, magnet za zlato z kraje) nebo zamčená truhla (otevře se po 40 zabitích kolem). Šipka u okraje obrazovky, po 40 s nevšímání zmizí, požehnání s odpočtem v HUD. Galerie strana 9, test `--test-event=ID`
 - **M4 Pocit z boje (verze 1.4.0):** nástup bosse jako v Clash of Clans (hrdina na modré stuze, boss na červené, „VS“ s otřesem, jméno a přídomek), krátké zastavení hry při zabití elity, kritickém zabití, změně fáze bosse, silném zásahu hrdiny a smrti náčelníka, smrt bosse (otřes, záblesky, náklon a propad, mince a konfety) a 14 vlastních teček bossů, prach pod nohama podle země (na plechu jiskry), smáčknutí nepřítele při zásahu, cuknutí kamery při kritu, stoupající tón sbírání elixíru. Testy `--test-bossintro`, `--test-bossdeath[=ID]` a kontrola `scripts/dev/hitstop_check.gd`
@@ -58,7 +60,7 @@ Balanc je vyladěný automatickým hráčem: rychlá simulace bez grafiky (`--he
 - M5 Věděl jsi? a Kniha: fakta o krajích se zdroji, bestiář, odznaky
 - M6 Hudba podle oblasti: dechovka, cimbál, hory, hutě, Praha
 - ~~M8 Hrdinové~~ hotovo
-- M9 Po dohrání: úrovně žáru, nekonečný režim, denní výzva
+- ~~M9 Po dohrání~~ hotovo
 - M10 Google Play: vlastní klíč, AAB, stránka v obchodě
 
 ### Backlog (později)

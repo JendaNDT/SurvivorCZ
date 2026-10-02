@@ -135,7 +135,7 @@ func update(delta: float) -> void:
 	timer -= delta
 	if timer <= 0.0:
 		var ev: Array = d.get("every", [20.0, 20.0])
-		timer = 3.0 if fast else randf_range(ev[0], ev[1])
+		timer = 3.0 if fast else randf_range(ev[0], ev[1]) * (0.5 if b.heat >= 7 else 1.0)
 		if not in_arena or kind in WEATHER:
 			var fn := Callable(self, "_start_" + kind)
 			if fn.is_valid():

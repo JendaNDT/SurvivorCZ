@@ -12,6 +12,10 @@ var events: Array = []
 
 func init(battle: Battle) -> void:
 	b = battle
+	_build_events()
+
+
+func _build_events() -> void:
 	events = [
 		{"at": 0.22, "kind": "ring", "done": false},
 		{"at": 0.30, "kind": "event", "done": false},
@@ -23,6 +27,12 @@ func init(battle: Battle) -> void:
 		{"at": 0.84, "kind": "final", "done": false},
 		{"at": 0.90, "kind": "ring", "done": false},
 	]
+	# žár 2: elity dvakrát častěji, žár 8: druhý náčelník
+	if b.heat >= 2:
+		events.append({"at": 0.16, "kind": "elite", "done": false})
+		events.append({"at": 0.80, "kind": "elite", "done": false})
+	if b.heat >= 8:
+		events.append({"at": 0.78, "kind": "miniboss", "done": false})
 
 
 func rate(f: float) -> float:
@@ -40,6 +50,9 @@ func update(delta: float) -> void:
 	if b.state != Battle.State.PLAY:
 		return
 	var f := clampf(b.elapsed / b.duration, 0.0, 1.0)
+	if b.endless:
+		# nekonečný boj: vlny dál houstnou
+		f = 1.0 + b.endless_t / 240.0
 	budget += rate(f) * delta
 	group_t -= delta
 	if group_t <= 0.0:
@@ -47,6 +60,9 @@ func update(delta: float) -> void:
 		_spawn_group(f, false)
 	for ev in events:
 		if not ev.done and f >= ev.at:
+			# druhý náčelník počká, až padne první
+			if ev.kind == "miniboss" and b.chief != null:
+				continue
 			ev.done = true
 			_event(ev.kind, f)
 

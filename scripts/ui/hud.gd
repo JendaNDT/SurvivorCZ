@@ -91,10 +91,22 @@ func _draw() -> void:
 	else:
 		var plate := Rect2(cx - 78, top, 156, 52)
 		Art.stone_plate(self, plate)
-		var tl := b.time_left()
-		var col := Color.WHITE if tl > 20.0 else Color("ffcf4a")
-		Art.text(self, Vector2(cx, top + 39), "%d:%02d" % [int(tl) / 60, int(tl) % 60], 34, col, 8)
-		Art.text(self, Vector2(cx, top + 70), "do příchodu bosse", 15, Color("fff6c8"), 5)
+		if b.endless:
+			var et := b.endless_t
+			Art.text(self, Vector2(cx, top + 39), "%d:%02d" % [int(et) / 60, int(et) % 60], 34, Color("ffb070"), 8)
+			var rec := Game.endless_record(b.region_id)
+			Art.text(self, Vector2(cx, top + 70), "nekonečný boj · rekord %d:%02d" % [int(rec) / 60, int(rec) % 60], 15, Color("fff6c8"), 5)
+		else:
+			var tl := b.time_left()
+			var col := Color.WHITE if tl > 20.0 else Color("ffcf4a")
+			Art.text(self, Vector2(cx, top + 39), "%d:%02d" % [int(tl) / 60, int(tl) % 60], 34, col, 8)
+			Art.text(self, Vector2(cx, top + 70), "do příchodu bosse", 15, Color("fff6c8"), 5)
+	# žár a denní výzva vedle časomíry
+	if b.heat > 0:
+		Art.icon_flame(self, Vector2(cx + 100, top + 26), 13)
+		Art.text(self, Vector2(cx + 116, top + 34), str(b.heat), 22, Color("ffb070"), 6, HORIZONTAL_ALIGNMENT_LEFT, 40)
+	elif not b.daily.is_empty():
+		Art.text(self, Vector2(cx + 96, top + 32), "denní výzva", 15, Color("9fd6ff"), 5, HORIZONTAL_ALIGNMENT_LEFT, 140)
 	# --- vpravo: zlato a zabití
 	var rx := vs.x - 120.0
 	_counter(Vector2(rx - 150, top + 6), "coin", str(b.gold_run))

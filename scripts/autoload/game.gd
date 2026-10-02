@@ -25,6 +25,11 @@ var fresh_unlocks: Array = []
 var fresh_heroes: Array = []
 ## Hrdina jen pro toto spuštění (--hero=…), uložení nemění.
 var hero_override := ""
+## Hra po dohrání (M9): žár jen pro toto spuštění (--heat=N, -1 = podle uložení),
+## datum denní výzvy (--daily=RRRR-MM-DD) a právě hraná denní výzva.
+var heat_override := -1
+var daily_override := ""
+var daily_run: Dictionary = {}
 ## Průměrné FPS z první bitvy, když se hra sekala (mapa pak nabídne úspornou grafiku).
 var perf_offer := 0.0
 var _vib_until := 0
@@ -141,6 +146,9 @@ func default_data() -> Dictionary:
 		"settings": DEFAULT_SETTINGS.duplicate(),
 		"perf_checked": false,
 		"heroes": {"selected": "cech", "unlocked": ["cech"], "seen": ["cech"]},
+		"heat": {"selected": 0, "unlocked": 0, "records": {}},
+		"endless": {},
+		"daily": {"last": "", "streak": 0, "results": {}},
 	}
 
 
@@ -272,6 +280,111 @@ func set_hero(id: String) -> void:
 	data.heroes.selected = id
 	save_game()
 	changed.emit()
+
+
+# ---------------------------------------------------------------- žár, nekonečno, denní výzva (M9)
+
+## Nejvyšší odemčený žár (0 = ještě není, odemkne se po dobytí celého Česka).
+func heat_unlocked() -> int:
+	var u := int(data.heat.get("unlocked", 0))
+	if u == 0 and all_conquered():
+		u = 1
+		data.heat.unlocked = 1
+	return u
+
+
+func heat() -> int:
+	if heat_override >= 0:
+		return clampi(heat_override, 0, ModifierDefs.MAX_HEAT)
+	return clampi(int(data.heat.get("selected", 0)), 0, heat_unlocked())
+
+
+func set_heat(n: int) -> void:
+	data.heat.selected = clampi(n, 0, heat_unlocked())
+	save_game()
+	changed.emit()
+
+
+func heat_record(region: String) -> int:
+	return int(data.heat.records.get(region, 0))
+
+
+## Výhra na žáru: zapíše rekord kraje a odemkne další úroveň. Vrací true, když se odemkla.
+func heat_won(region: String, level: int) -> bool:
+	if level <= 0:
+		return false
+	data.heat.records[region] = maxi(heat_record(region), level)
+	var opened := false
+	if level >= heat_unlocked() and level < ModifierDefs.MAX_HEAT:
+		data.heat.unlocked = level + 1
+		opened = true
+	save_game()
+	return opened
+
+
+func endless_record(region: String) -> float:
+	return float(data.endless.get(region, 0.0))
+
+
+## Vrací true, když je to nový rekord kraje.
+func set_endless_record(region: String, secs: float) -> bool:
+	if secs <= endless_record(region):
+		return false
+	data.endless[region] = secs
+	save_game()
+	return true
+
+
+## „2026-10-02“ → „2. 10. 2026“.
+func date_cz(date: String) -> String:
+	var p := date.split("-")
+	if p.size() != 3:
+		return date
+	return "%d. %d. %s" % [int(p[2]), int(p[1]), p[0]]
+
+
+func today() -> String:
+	return daily_override if daily_override != "" else Time.get_date_string_from_system()
+
+
+## Denní výzva pro dané datum: kraj, hrdina a dva modifikátory jsou pro všechny stejné.
+func daily_info(date: String) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("dobyj-cesko-" + date)
+	var region: String = Regions.ORDER[rng.randi() % Regions.ORDER.size()]
+	var hero_id: String = HeroDefs.ORDER[rng.randi() % HeroDefs.ORDER.size()]
+	var ids: Array = ModifierDefs.DAILY.keys()
+	var a: String = ids[rng.randi() % ids.size()]
+	ids.erase(a)
+	var b2: String = ids[rng.randi() % ids.size()]
+	return {"date": date, "region": region, "hero": hero_id, "mods": [a, b2], "seed": rng.randi()}
+
+
+func daily_won_today() -> bool:
+	return bool(data.daily.results.get(today(), {}).get("won", false))
+
+
+## Série dní v řadě s výhrou (včetně dneška, když už dnes vyhrál).
+func daily_streak() -> int:
+	return int(data.daily.get("streak", 0))
+
+
+## Zapíše výsledek denní výzvy. Odměnu dá jen za první výhru v daném dni.
+func daily_result(won: bool, secs: float) -> int:
+	var date := today()
+	var res: Dictionary = data.daily.results.get(date, {"won": false, "tries": 0})
+	res.tries = int(res.get("tries", 0)) + 1
+	var reward := 0
+	if won and not bool(res.won):
+		res.won = true
+		res["time"] = secs
+		var yesterday := Time.get_date_string_from_unix_time(Time.get_unix_time_from_datetime_string(date) - 86400)
+		data.daily.streak = (daily_streak() + 1) if data.daily.last == yesterday else 1
+		data.daily.last = date
+		reward = ModifierDefs.DAILY_GOLD + ModifierDefs.DAILY_STREAK_GOLD * mini(daily_streak(), ModifierDefs.DAILY_STREAK_MAX)
+	data.daily.results[date] = res
+	save_game()
+	return reward
 
 
 ## Kolik odemčených hrdinů hráč ještě neviděl na desce Hrdinové.

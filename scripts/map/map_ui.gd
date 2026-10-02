@@ -144,6 +144,14 @@ class RegionCard extends Control:
 			for i in 3:
 				var c := Vector2(tx + Art.text_width("Získané hvězdy: ", 18) + 14 + i * 26, yy + 43)
 				Art.icon_star(self, c, 11, i < n)
+			var rx := tx + Art.text_width("Získané hvězdy: ", 18) + 96.0
+			if Game.heat_record(r.id) > 0:
+				Art.icon_flame(self, Vector2(rx, yy + 43), 9)
+				Art.text(self, Vector2(rx + 12, yy + 50), str(Game.heat_record(r.id)), 16, Color("ffb070"), 4, HORIZONTAL_ALIGNMENT_LEFT, 30)
+				rx += 46.0
+			var er := Game.endless_record(r.id)
+			if er > 0.0:
+				Art.text(self, Vector2(rx, yy + 50), "∞ %d:%02d" % [int(er) / 60, int(er) % 60], 16, Color("ff8a2a"), 4, HORIZONTAL_ALIGNMENT_LEFT, 90)
 		elif st == "locked":
 			draw_string(Art.font, Vector2(tx, yy + 50), "Nejdřív dobyj některý sousední kraj.", HORIZONTAL_ALIGNMENT_LEFT, tw, 17, Color("a03a2a"))
 		# hrdina, který půjde do boje (tlačítko „Změnit“ přidává MapScreen)
@@ -316,6 +324,97 @@ class HeroBoard extends Control:
 				var bar := Rect2(r.position.x + 24, y + 62, cw - 48, 16)
 				Art.bar(self, bar, float(pr[0]) / float(pr[1]), Color("b25cff"))
 				Art.text(self, Vector2(bar.get_center().x, bar.end.y + 22), "%d / %d" % [int(pr[0]), int(pr[1])], 16, Color.WHITE, 5)
+
+
+## Volič žáru (M9) vpravo dole: odemkne se po dobytí celého Česka.
+class HeatBar extends Control:
+	var m: MapScreen
+	var minus: CCButton
+	var plus: CCButton
+
+	func _ready() -> void:
+		size = Vector2(300, 66)
+		minus = CCButton.make("−", Art.BTN_BLUE, Vector2(58, 58), 30)
+		minus.radius = 29.0
+		minus.position = Vector2(0, 4)
+		minus.pressed.connect(func(): _step(-1))
+		add_child(minus)
+		plus = CCButton.make("+", Art.BTN_RED, Vector2(58, 58), 30)
+		plus.radius = 29.0
+		plus.position = Vector2(size.x - 58, 4)
+		plus.pressed.connect(func(): _step(1))
+		add_child(plus)
+		refresh()
+
+	func _step(d: int) -> void:
+		Game.set_heat(Game.heat() + d)
+		Sfx.play("click", -4.0)
+		refresh()
+
+	func refresh() -> void:
+		if minus == null:
+			return
+		minus.disabled = Game.heat() <= 0
+		plus.disabled = Game.heat() >= Game.heat_unlocked()
+		minus.queue_redraw()
+		plus.queue_redraw()
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := Rect2(64, 0, size.x - 128, 66)
+		Art.stone_plate(self, r)
+		var h := Game.heat()
+		var cx := r.get_center().x
+		if h > 0:
+			Art.icon_flame(self, Vector2(cx - 40, 30), 14)
+			Art.text(self, Vector2(cx + 10, 38), "Žár %d" % h, 26, Color("ffb070"), 7)
+			Art.text(self, Vector2(cx, 60), "+%d %% zlata" % int(h * ModifierDefs.HEAT_GOLD * 100), 13, Color("fff6c8"), 4)
+		else:
+			Art.text(self, Vector2(cx, 32), "Žár vypnutý", 20, Color.WHITE, 6)
+			Art.text(self, Vector2(cx, 56), "odemčeno do %d" % Game.heat_unlocked(), 13, Color("fff6c8"), 4)
+
+
+## Deska denní výzvy: kraj, hrdina, dva modifikátory a odměna.
+class DailyBoard extends Control:
+	var m: MapScreen
+	var info: Dictionary
+
+	func _draw() -> void:
+		Art.panel(self, Rect2(Vector2.ZERO, size))
+		Art.ribbon(self, Vector2(size.x * 0.5, 4), 360, 58, Color("3fa8ff"), "DENNÍ VÝZVA", 34)
+		var ink := Color("4a2c12")
+		var r := Regions.get_region(str(info.region))
+		var h := HeroDefs.get_hero(str(info.hero))
+		draw_string(Art.font, Vector2(0, 84), Game.date_cz(str(info.date)), HORIZONTAL_ALIGNMENT_CENTER, size.x, 18, Color("7a5a3a"))
+		# kraj s bossem
+		var bc := Vector2(120, 196)
+		Art.circle(self, bc, 76, Color("3a2a4a"), 4.0)
+		draw_circle(bc, 70, Color("5a3a7a"))
+		var bkey := "b:%s:0" % r.boss
+		if Baker.has(bkey):
+			draw_texture_rect(Baker.tex(bkey), Rect2(bc - Vector2(76, 80), Vector2(152, 152)), false)
+		Art.text(self, Vector2(bc.x, bc.y + 104), str(r.short), 22, Color.WHITE, 6)
+		# hrdina
+		var hc := Vector2(size.x - 120, 196)
+		Art.circle(self, hc, 76, Color("b25cff"), 4.0)
+		draw_circle(hc, 70, Color("e8d4ff"))
+		var hk := "icon:hero_" + str(info.hero)
+		if Baker.has(hk):
+			draw_texture_rect(Baker.tex(hk), Rect2(hc - Vector2(78, 82), Vector2(156, 156)), false)
+		Art.text(self, Vector2(hc.x, hc.y + 104), str(h.name), 20, Color.WHITE, 6)
+		# modifikátory
+		var mx := 240.0
+		var mw := size.x - 480.0
+		for i in info.mods.size():
+			var md: Dictionary = ModifierDefs.DAILY[info.mods[i]]
+			var mr := Rect2(mx, 108 + i * 92, mw, 80)
+			Art.flat(self, Art.rrect(mr, 12), Color("fff3d6"), 2.5)
+			draw_string(Art.font, mr.position + Vector2(14, 30), str(md.name), HORIZONTAL_ALIGNMENT_LEFT, mw - 28, 20, Color("b8262c"))
+			draw_multiline_string(Art.font, mr.position + Vector2(14, 54), str(md.desc), HORIZONTAL_ALIGNMENT_LEFT, mw - 28, 15, 2, ink)
+		# odměna
+		var streak := Game.daily_streak()
+		var line := "Hotovo! Další výzva zítra (série %d)." % streak if Game.daily_won_today() else "Odměna za výhru: %d zlata + %d za každý den série (máš %d)" % [ModifierDefs.DAILY_GOLD, ModifierDefs.DAILY_STREAK_GOLD, streak]
+		draw_string(Art.font, Vector2(0, size.y - 112), line, HORIZONTAL_ALIGNMENT_CENTER, size.x, 17, ink)
 
 
 ## Úvodní obrazovka s logem a návodem.

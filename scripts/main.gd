@@ -96,6 +96,10 @@ func _ready() -> void:
 			Game.data.intro_seen = true
 		elif a == "--unlock-heroes":
 			Game.data.heroes.unlocked = HeroDefs.ORDER.duplicate()
+		elif a.begins_with("--heat="):
+			Game.heat_override = int(a.substr(7))
+		elif a.begins_with("--daily="):
+			Game.daily_override = a.substr(8)
 		elif a.begins_with("--gold="):
 			Game.data.gold = int(a.substr(7))
 		elif a.begins_with("--meta="):
@@ -116,9 +120,12 @@ func _ready() -> void:
 	loading.queue_free()
 	if soak > 0:
 		show_map(false)
+	elif "--daily-run" in args:
+		Game.daily_run = Game.daily_info(Game.today())
+		start_battle(str(Game.daily_run.region), false)
 	elif battle_id != "":
 		start_battle(battle_id, false)
-	elif screen in ["shop", "settings", "perf", "crash", "quit", "heroes"]:
+	elif screen in ["shop", "settings", "perf", "crash", "quit", "heroes", "daily"]:
 		show_map(false, screen)
 	elif screen.begins_with("region:"):
 		show_map(false, screen)

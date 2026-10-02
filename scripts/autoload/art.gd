@@ -501,6 +501,14 @@ func icon_crown(ci: CanvasItem, c: Vector2, s: float) -> void:
 		circle(ci, c + p * s, s * 0.14, Color("ff4d6d"), 2.0)
 
 
+## Plamínek žáru (M9).
+func icon_flame(ci: CanvasItem, c: Vector2, s: float) -> void:
+	var outer := poly([0, -1.3, 0.55, -0.5, 0.85, 0.2, 0.6, 0.85, 0, 1.05, -0.6, 0.85, -0.85, 0.2, -0.45, -0.3, -0.25, 0.1])
+	shape(ci, xform(outer, c, Vector2(s, s)), Color("ff6a1a"), 2.5, 0.5)
+	var inner := poly([0, -0.4, 0.35, 0.25, 0.3, 0.7, 0, 0.85, -0.3, 0.7, -0.35, 0.25])
+	safe_poly(ci, xform(inner, c, Vector2(s, s)), Color("ffd23f"))
+
+
 func icon_star(ci: CanvasItem, c: Vector2, r: float, filled: bool = true) -> void:
 	var pts := star(c, r, r * 0.48)
 	if filled:

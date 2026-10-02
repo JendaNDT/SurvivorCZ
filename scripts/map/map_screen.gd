@@ -14,6 +14,8 @@ var details: MapArt.MapDetails
 var live: MapArt.MapLive
 var clouds: MapArt.MapClouds
 var topbar: MapUI.TopBar
+var daily_bt: CCButton
+var heat_bar: MapUI.HeatBar
 var popup_layer: Control
 var selected := ""
 var map_scale := 1.0
@@ -60,6 +62,15 @@ func _ready() -> void:
 	topbar = MapUI.TopBar.new()
 	topbar.m = self
 	add_child(topbar)
+	# hra po dohrání (M9): denní výzva vlevo dole, volič žáru vpravo dole
+	daily_bt = CCButton.make("Denní výzva", Art.BTN_BLUE, Vector2(230, 66), 24)
+	daily_bt.icon_key = "ui:swords"
+	daily_bt.icon_scale = 0.42
+	daily_bt.pressed.connect(func(): show_daily())
+	add_child(daily_bt)
+	heat_bar = MapUI.HeatBar.new()
+	heat_bar.m = self
+	add_child(heat_bar)
 	popup_layer = Control.new()
 	popup_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	popup_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -99,6 +110,8 @@ func _ready() -> void:
 		show_shop()
 	elif open_on_start == "heroes":
 		show_heroes()
+	elif open_on_start == "daily":
+		show_daily()
 	elif open_on_start == "settings":
 		show_settings()
 	elif open_on_start == "perf":
@@ -131,6 +144,12 @@ func _bake() -> void:
 
 func _layout() -> void:
 	var vs := size
+	if daily_bt:
+		daily_bt.position = Vector2(20, vs.y - 84)
+		daily_bt.badge = "" if Game.daily_won_today() else "!"
+		heat_bar.position = Vector2(vs.x - heat_bar.size.x - 20, vs.y - 84)
+		heat_bar.visible = Game.heat_unlocked() > 0
+		heat_bar.refresh()
 	var avail := Rect2(30, 92, vs.x - 60, vs.y - 112)
 	map_scale = minf(avail.size.x / MAP_SIZE.x, avail.size.y / MAP_SIZE.y)
 	var msz := MAP_SIZE * map_scale
@@ -335,6 +354,40 @@ func show_heroes(back_to: String = "") -> void:
 			close_popup())
 	hb.add_child(x)
 	topbar.queue_redraw()
+
+
+## Denní výzva: kraj, hrdina a dva modifikátory podle data.
+func show_daily() -> void:
+	Game.note("denní výzva")
+	var dim := _modal()
+	dim.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed:
+			close_popup())
+	var info := Game.daily_info(Game.today())
+	var board := MapUI.DailyBoard.new()
+	board.m = self
+	board.info = info
+	board.size = Vector2(minf(780.0, size.x - 40), minf(500.0, size.y - 24))
+	board.position = (size - board.size) * 0.5 + Vector2(0, 8)
+	popup_layer.add_child(board)
+	_pop(board)
+	_close_button(board, Vector2(board.size.x - 44, -14))
+	var won := Game.daily_won_today()
+	var bt := CCButton.make("Hrát znovu" if won else "DO BOJE!", Art.BTN_GREEN, Vector2(300, 80), 30 if won else 36)
+	bt.icon_key = "ui:swords"
+	bt.icon_scale = 0.5
+	bt.position = Vector2((board.size.x - 300) * 0.5, board.size.y - 92)
+	bt.pressed.connect(func():
+		Sfx.play("warn", -6.0)
+		Game.daily_run = info
+		attack.emit(str(info.region)))
+	board.add_child(bt)
+	# kresby kraje pro náhled
+	var r := Regions.get_region(str(info.region))
+	var bid: String = r.boss
+	await Baker.bake_many([{"key": "b:%s:0" % bid, "size": BossArt.SIZE, "fn": func(ci, tt): BossArt.draw(ci, bid, tt)}])
+	if is_instance_valid(board):
+		board.queue_redraw()
 
 
 func _hero_unlocked_toast(text: String) -> void:

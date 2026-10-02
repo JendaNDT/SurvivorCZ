@@ -181,6 +181,10 @@ class MapDetails extends Node2D:
 				var pts := Art.star(c, 7, 3.2)
 				Art.safe_poly(self, Art.grow(pts, 1.5), Art.OUTLINE)
 				Art.safe_poly(self, pts, Art.GOLD if i < n else Color("5b4a3a"))
+			var hr := Game.heat_record(id)
+			if hr > 0:
+				Art.icon_flame(self, Vector2(lp.x + 34, r.end.y + 8), 6)
+				Art.text(self, Vector2(lp.x + 42, r.end.y + 13), str(hr), 12, Color("ffb070"), 3, HORIZONTAL_ALIGNMENT_LEFT, 30)
 
 
 ## Animované prvky: pulzující meče, vlajky, výběr kraje.

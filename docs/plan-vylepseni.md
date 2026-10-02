@@ -16,7 +16,7 @@ Plán pokrývá všechny navržené vylepšení: nástrahy a minibosse v krajíc
 | M6 | Hudba podle oblasti | dechovka, cimbál, hory, hutě, Praha | 1 session |
 | M7 ✅ | Události v boji | oltář, boží muka, obelisk, kramář, zamčená truhla | hotovo (verze 1.5.0) |
 | M8 ✅ | Hrdinové | Bivoj, kněžna Libuše, Horymír se Šemíkem | hotovo (verze 1.6.0) |
-| M9 | Po dohrání | úrovně žáru, nekonečný režim, denní výzva | 2 sessions |
+| M9 ✅ | Po dohrání | úrovně žáru, nekonečný režim, denní výzva | hotovo (verze 1.7.0) |
 | M10 | Google Play | vlastní klíč, AAB, stránka v obchodě | 1 session + tvoje kroky |
 
 **Proč toto pořadí:** M1 je první, protože hra ještě neběžela na skutečném telefonu a nastavení potřebují i další milníky. M2 a M3 nejvíc zlepší hratelnost. M4 je levný a výrazný. Hrdinové a hra po dohrání dávají smysl, až když je obsahu víc. Vydání je poslední.
@@ -421,6 +421,12 @@ Malý štítek v HUD pod ukazateli: FPS a počet nepřátel. Zapíná se v nasta
 ## M9 Po dohrání
 
 **Cíl:** hra pokračuje i po dobytí všech 14 krajů.
+
+**Stav: hotovo ve verzi 1.7.0.** Proti plánu:
+- Úrovně žáru se odemykají postupně: po dobytí celého Česka žár 1, výhra na nejvyšším žáru odemkne další. Volič je vpravo dole na mapě (ne v horní liště, tam už není místo).
+- Nekonečný režim se nabízí po každém bossovi (tvoje rozhodnutí), ne až po dohrání. Nepřátelé v něm každou minutu zesílí o 40 % životů a 15 % poškození (násobí se).
+- Denní výzva nedobývá kraj (kraj, hrdina a obtížnost 6 jsou pro všechny stejné), hrdina může být i ještě zamčený. Náhoda: globální generátor se nastaví semínkem z data (`seed()`), místo vlastního `RandomNumberGenerator` všude.
+- Tlačítko denní výzvy je vlevo dole na mapě.
 
 ### Úrovně žáru (1–10)
 

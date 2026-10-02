@@ -17,7 +17,7 @@ var intro_t := 1.2
 var intro_len := 1.2
 ## Prodleva mezi útoky v první fázi.
 var attack_gap := 2.6
-var phase_names := ["", "Fáze 2!", "Poslední fáze!"]
+var phase_names := ["", "Fáze 2!", "Poslední fáze!", "Zuřivost!"]
 
 
 func init_boss(battle: Battle, boss_id: String, hp_total: float) -> void:
@@ -31,6 +31,8 @@ func init_boss(battle: Battle, boss_id: String, hp_total: float) -> void:
 	spd = 70.0 * b.enemy_speed_mult()
 	dmg = 15.0 * b.boss_dmg_mult()
 	knock_res = 1.0
+	if b.heat >= 10:
+		attack_gap *= 0.6
 	set_visual_scale(0.8)
 	shadow = Sprite2D.new()
 	shadow.texture = Baker.tex("shadow")
@@ -103,6 +105,9 @@ func die() -> void:
 ## Fáze podle zbývajících životů.
 func _check_phase() -> void:
 	var want_phase := 0 if hp > max_hp * 0.66 else (1 if hp > max_hp * 0.33 else 2)
+	# žár 5: čtvrtá fáze (všechny útoky, rychleji)
+	if b.heat >= 5 and hp < max_hp * 0.2:
+		want_phase = 3
 	if want_phase > phase:
 		phase = want_phase
 		b.banner(phase_names[phase], Color("ff5a48"))
@@ -129,7 +134,7 @@ func power() -> float:
 
 func _attacks() -> Array:
 	var list := []
-	for i in phase + 1:
+	for i in mini(phase, 2) + 1:
 		list.append_array(bdef.phases[i])
 	return list
 
@@ -140,7 +145,7 @@ func _start_attack() -> void:
 	if pick == last_attack and list.size() > 1:
 		pick = list[(list.find(pick) + 1) % list.size()]
 	last_attack = pick
-	attack_t = maxf(1.2, attack_gap - phase * 0.5)
+	attack_t = maxf(0.9 if phase >= 3 else 1.2, attack_gap - phase * 0.5)
 	busy = true
 	match pick:
 		"slam": await _slam()

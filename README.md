@@ -45,7 +45,11 @@ APK je podepsané „sideload“ klíčem z `android/sideload.keystore`, takže 
 
 - **Zlato** (z mincí a za výhru) utratíš ve **Zbrojnici** za trvalá vylepšení: životy, poškození, rychlost, magnet, brnění, regeneraci, přehazování karet, víc zlata, víc zkušeností a „druhou šanci“.
 - Obtížnost roste s počtem už dobytých krajů. Na pořadí tedy nezáleží, každý další kraj je o kus těžší. Kraj trvá zhruba 3 až 5 minut (časomíra 2:30 až 4:14 plus souboj s bossem).
-- Hra končí oslavou, když dobudeš všech 14 krajů.
+- Hra končí oslavou, když dobudeš všech 14 krajů. Pak se dá hrát dál:
+  - **Žár** (volič vpravo dole na mapě): úrovně 1–10 se sčítají a každá přidá +20 % zlata. Výhra na nejvyšším žáru odemkne další úroveň, mapa u kraje ukáže plamínkem nejvyšší pokořený žár.
+    1. nepřátelé +15 % životů, 2. elity dvakrát častěji, 3. o jedno přehození méně, 4. nepřátelé o 10 % rychlejší, 5. boss má 4. fázi „Zuřivost“, 6. léčení o polovinu slabší, 7. nástrahy dvakrát častěji, 8. dva náčelníci, 9. hrdina −20 % životů, 10. boss +30 % životů a útočí bez prodlev.
+- **Nekonečný boj:** po každé výhře nad bossem tlačítko „Bojovat dál“. Vlny dál houstnou a sílí, každé 2 minuty přijde náčelník. Skóre je čas přežití, rekord kraje se ukáže v jeho kartě (∞), zlato se sbírá dál.
+- **Denní výzva** (tlačítko vlevo dole na mapě): kraj, hrdina a dva modifikátory se vyberou podle data, takže je výzva ten den pro všechny stejná. Modifikátory: jen jedna zbraň, splašení nepřátelé (2× rychlejší, méně životů), léčivý elixír, bez úskoku, obři, zlatá horečka. Za první výhru dne 100 zlata a +10 za každý den série (nejvýš 7). Denní výzva nedobývá kraj.
 
 Na počítači funguje i klávesnice: **WASD / šipky** pohyb, **mezerník** úskok, **E** hrom, **Esc** pauza.
 
@@ -186,6 +190,9 @@ godot --path . -- --battle=VYS --test-miniboss               # náčelník hned 
 godot --path . -- --battle=KVK --test-event=oltar            # událost hned u hrdiny (oltar, muka, obelisk, kramar, truhla)
 godot --path . -- --battle=STC --hero=bivoj --test-ult       # hrdina pro jedno spuštění (cech, bivoj, libuse, horymir) a jeho ultimátka
 godot --path . -- --screen=heroes --unlock-heroes            # deska hrdinů se všemi odemčenými
+godot --path . -- --battle=MSK --heat=5 --autoplay           # bitva na žáru 5 (jen pro toto spuštění)
+godot --path . -- --battle=KVK --autoplay --endless          # po výhře automat pokračuje v nekonečném boji
+godot --path . -- --daily=2026-10-02 --daily-run             # denní výzva pro dané datum (bez --daily-run deska: --screen=daily)
 godot --path . -- --battle=PHA --test-bossintro              # nástup bosse („VS“) hned po startu
 godot --path . -- --battle=KVK --test-bossdeath=orloj        # smrt libovolného bosse (bez =ID boss kraje)
 godot --path . -- --battle=PHA --test-bossdeath --dev-script=res://scripts/dev/hitstop_check.gd   # kontrola zastavení při zásahu

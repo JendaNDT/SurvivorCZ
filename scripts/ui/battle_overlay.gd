@@ -321,7 +321,7 @@ func show_settings() -> void:
 
 # ---------------------------------------------------------------- výhra a prohra
 
-func show_win(stars: int, gold: int, first: bool) -> void:
+func show_win(stars: int, gold: int, first: bool, heat_up: bool = false) -> void:
 	_clear()
 	var all := Game.all_conquered()
 	_title("KRAJ DOBYT!", Color("6fcf2f"), 20.0, b.region.name)
@@ -351,7 +351,9 @@ func show_win(stars: int, gold: int, first: bool) -> void:
 		Art.text(ci, Vector2(cx + 14, 44), "+%d zlata" % gold, 30, Color("ffd23f"), 8)
 	content.add_child(gp)
 	_pop(gp, 0.35)
-	var txt := "Odemkly se sousední kraje!" if first and not all else ("Celé Česko je tvoje!" if all else "")
+	var txt := "Odemkly se sousední kraje!" if first and not all else ("Celé Česko je tvoje!" if all and first else "")
+	if heat_up:
+		txt = "Odemkl se žár %d!" % Game.heat_unlocked()
 	if txt != "":
 		var tp := Painter.new()
 		tp.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -360,11 +362,73 @@ func show_win(stars: int, gold: int, first: bool) -> void:
 		tp.fn = func(ci: Control) -> void:
 			Art.text(ci, Vector2(ci.size.x * 0.5, 28), txt, 24, Color("bfffa8"), 6)
 		content.add_child(tp)
-	var cont := CCButton.make("Pokračovat", Art.BTN_GREEN, Vector2(320, 80), 32)
-	cont.position = Vector2((size.x - 320) * 0.5, size.y - 120)
+	var cont := CCButton.make("Pokračovat", Art.BTN_GREEN, Vector2(300, 80), 32)
+	cont.position = Vector2(size.x * 0.5 + 10, size.y - 120)
 	cont.pressed.connect(func(): b.leave("ending" if all and first else "map"))
 	content.add_child(cont)
 	_pop(cont, 0.5)
+	# nekonečný boj (M9): bojovat dál a překonávat rekord kraje
+	var more := CCButton.make("Bojovat dál", Color("ff8a2a"), Vector2(300, 80), 30)
+	var rec := Game.endless_record(b.region_id)
+	more.sub = "rekord %d:%02d" % [int(rec) / 60, int(rec) % 60] if rec > 0.0 else "nekonečný boj"
+	more.font_size = 28
+	more.position = Vector2(size.x * 0.5 - 310, size.y - 120)
+	more.pressed.connect(func(): b.start_endless.call_deferred())
+	content.add_child(more)
+	_pop(more, 0.55)
+
+
+## Výhra v denní výzvě: odměna jen za první výhru dne, série dní v řadě.
+func show_daily_win(gold: int, daily_gold: int) -> void:
+	_clear()
+	_title("VÝZVA SPLNĚNA!", Color("3fa8ff"), 30.0, "Denní výzva " + Game.date_cz(Game.today()))
+	var gp := Painter.new()
+	gp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gp.size = Vector2(size.x, 220)
+	gp.position = Vector2(0, 190)
+	var streak := Game.daily_streak()
+	gp.fn = func(ci: Control) -> void:
+		var cx := ci.size.x * 0.5
+		var r := Rect2(cx - 160, 6, 320, 56)
+		Art.safe_poly(ci, Art.rrect(r, 28), Color(0, 0, 0, 0.4))
+		Art.icon_coin(ci, Vector2(cx - 120, 34), 20)
+		Art.text(ci, Vector2(cx + 14, 46), "+%d zlata" % gold, 30, Color("ffd23f"), 8)
+		var line := "Série: %d %s v řadě" % [streak, "den" if streak == 1 else ("dny" if streak < 5 else "dní")] if daily_gold > 0 else "Dnešní odměnu už máš, zítra je nová výzva."
+		Art.text(ci, Vector2(cx, 112), line, 24, Color("bfffa8"), 6)
+		if daily_gold > 0:
+			Art.text(ci, Vector2(cx, 150), "Odměna za výzvu: %d zlata" % daily_gold, 20, Color("fff6c8"), 5)
+	content.add_child(gp)
+	_pop(gp, 0.2)
+	var cont := CCButton.make("Na mapu", Art.BTN_GREEN, Vector2(320, 80), 32)
+	cont.position = Vector2((size.x - 320) * 0.5, size.y - 120)
+	cont.pressed.connect(func(): b.leave("map"))
+	content.add_child(cont)
+	_pop(cont, 0.4)
+
+
+## Konec nekonečného boje: čas přežití, rekord kraje a zlato.
+func show_endless_end(secs: float, record: float, is_new: bool, gold: int) -> void:
+	_clear()
+	_title("NOVÝ REKORD!" if is_new else "KONEC BOJE", Color("ff8a2a") if is_new else Color("8d8a85"), 30.0, b.region.name + " · nekonečný boj")
+	var gp := Painter.new()
+	gp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gp.size = Vector2(size.x, 240)
+	gp.position = Vector2(0, 170)
+	gp.fn = func(ci: Control) -> void:
+		var cx := ci.size.x * 0.5
+		Art.text(ci, Vector2(cx, 70), "%d:%02d" % [int(secs) / 60, int(secs) % 60], 72, Color.WHITE, 12)
+		Art.text(ci, Vector2(cx, 112), "Rekord kraje: %d:%02d" % [int(record) / 60, int(record) % 60], 24, Color("ffd23f"), 6)
+		var r := Rect2(cx - 150, 140, 300, 52)
+		Art.safe_poly(ci, Art.rrect(r, 26), Color(0, 0, 0, 0.4))
+		Art.icon_coin(ci, Vector2(cx - 112, 166), 20)
+		Art.text(ci, Vector2(cx + 14, 178), "+%d zlata" % gold, 30, Color("ffd23f"), 8)
+	content.add_child(gp)
+	_pop(gp, 0.2)
+	var cont := CCButton.make("Na mapu", Art.BTN_GREEN, Vector2(320, 80), 32)
+	cont.position = Vector2((size.x - 320) * 0.5, size.y - 120)
+	cont.pressed.connect(func(): b.leave("map"))
+	content.add_child(cont)
+	_pop(cont, 0.4)
 
 
 func show_lose(gold: int) -> void:

@@ -96,6 +96,16 @@ var kick_t := -10.0
 ## Prach pod nohama podle země kraje.
 var dust_col := Color(0.62, 0.55, 0.36, 0.7)
 var dust_spark := false
+## Hra po dohrání (M9): žár, denní výzva s modifikátory, nekonečný režim.
+var heat := 0
+var daily: Dictionary = {}
+var mods: Array = []
+var max_weapons := Upgrades.MAX_WEAPONS
+var endless := false
+var endless_t := 0.0
+var endless_gold0 := 0
+var next_chief_t := 0.0
+var palisade: Array = []
 
 
 func _ready() -> void:
@@ -119,6 +129,19 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--duration="):
 			duration = float(a.substr(11))
+	# denní výzva: kraj, hrdina, obtížnost a modifikátory jsou pro všechny stejné
+	daily = Game.daily_run
+	if not daily.is_empty():
+		tier = ModifierDefs.DAILY_TIER
+		duration = Regions.duration_for_tier(tier)
+		hero_id = str(daily.hero)
+		hero = HeroDefs.get_hero(hero_id)
+		mods = daily.mods
+		seed(int(daily.seed))
+	else:
+		heat = Game.heat()
+	if has_mod("jedna_zbran"):
+		max_weapons = 1
 	# test nástupu a smrti konkrétního bosse v libovolném kraji
 	var test_boss := _arg(args, "--test-bossdeath=") + _arg(args, "--test-bossintro=")
 	if test_boss != "" and EnemyDefs.BOSSES.has(test_boss):
@@ -265,6 +288,8 @@ func _start() -> void:
 	apply_quality()
 	Game.setting_changed.connect(_on_setting)
 	rerolls = 2 + int(Game.meta_value("m_reroll")) + int(HeroDefs.mod(hero_id, "rerolls", 0))
+	if heat >= 3:
+		rerolls = maxi(0, rerolls - 1)
 	revive_left = int(Game.meta_value("m_revive"))
 	recalc_stats()
 	player.hp = player.max_hp
@@ -272,7 +297,7 @@ func _start() -> void:
 	weapons.add_weapon(str(hero.start))
 	for k in int(hero.get("start_level", 1)) - 1:
 		weapons.level_weapon(str(hero.start))
-	if hero.has("start2"):
+	if hero.has("start2") and max_weapons > 1:
 		weapons.add_weapon(str(hero.start2))
 	camera.position = player.position
 	hud = Hud.new()
@@ -434,8 +459,13 @@ func _process(delta: float) -> void:
 		if state == State.PLAY:
 			events.update(delta)
 		_update_buffs(delta)
-		if state == State.PLAY and elapsed >= duration:
+		if state == State.PLAY and elapsed >= duration and not endless:
 			start_boss()
+		if endless and state == State.PLAY:
+			endless_t += delta
+			if endless_t >= next_chief_t and chief == null:
+				next_chief_t = endless_t + ModifierDefs.ENDLESS_CHIEF_EVERY
+				spawn_chief()
 		if pending_levelups > 0 or pending_chests > 0 or pending_chief > 0 or pending_legend > 0:
 			_open_choice()
 	_update_camera(delta)
@@ -594,6 +624,10 @@ func recalc_stats() -> void:
 	stats.speed *= 1.0 + float(HeroDefs.mod(hero_id, "speed"))
 	stats.xp *= 1.0 + float(HeroDefs.mod(hero_id, "xp"))
 	stats.knock += float(HeroDefs.mod(hero_id, "knock"))
+	if heat >= 9:
+		stats.max_hp *= 0.8
+	if heat >= 6:
+		stats.regen *= 0.5
 	# požehnání z božích muk
 	if buffs.has("sila"):
 		stats.dmg *= 1.3
@@ -614,12 +648,24 @@ func recalc_stats() -> void:
 ## s časem a s počtem dobytých krajů roste.
 func enemy_hp_mult() -> float:
 	var f := clampf(elapsed / duration, 0.0, 1.0)
-	return (1.0 + tier * 0.08) * (1.0 + f * (1.6 + tier * 0.18))
+	var m := (1.0 + tier * 0.08) * (1.0 + f * (1.6 + tier * 0.18))
+	if heat >= 1:
+		m *= 1.15
+	if has_mod("rychli"):
+		m *= 0.6
+	if has_mod("obri"):
+		m *= 1.5
+	# nekonečný boj: každou minutu o 40 % víc životů
+	return m * pow(1.4, endless_t / 60.0)
 
 
 func enemy_dmg_mult() -> float:
 	var f := clampf(elapsed / duration, 0.0, 1.0)
-	return (1.0 + tier * 0.04) * (1.0 + f * (0.3 + tier * 0.015))
+	return (1.0 + tier * 0.04) * (1.0 + f * (0.3 + tier * 0.015)) * pow(1.15, endless_t / 60.0)
+
+
+func has_mod(id: String) -> bool:
+	return mods.has(id)
 
 
 func boss_dmg_mult() -> float:
@@ -627,7 +673,14 @@ func boss_dmg_mult() -> float:
 
 
 func enemy_speed_mult() -> float:
-	return 1.0 + tier * 0.015
+	var m := 1.0 + tier * 0.015
+	if heat >= 4:
+		m *= 1.1
+	if has_mod("rychli"):
+		m *= 2.0
+	if has_mod("obri"):
+		m *= 0.9
+	return m
 
 
 func need_for(lv: int) -> float:
@@ -723,6 +776,8 @@ func on_enemy_killed(e: Enemy, drops: bool) -> void:
 		for i in 6:
 			pickups.drop("coin", e.position, 1)
 		return
+	if has_mod("zlata_horecka") and randf() < 0.18:
+		pickups.drop("coin", e.position, 1)
 	if r < 0.045:
 		pickups.drop("coin", e.position, 1)
 	elif r < 0.057:
@@ -762,9 +817,12 @@ func hit_player(dmg: float, src: Vector2, big: bool = false) -> void:
 			lose()
 
 
-func heal(v: float) -> void:
+func heal(v: float, quiet: bool = false) -> void:
+	if heat >= 6:
+		v *= 0.5
 	player.hp = minf(player.max_hp, player.hp + v)
-	fx.number(player.position + Vector2(0, -50), v, false, Color("8fff7a"))
+	if not quiet:
+		fx.number(player.position + Vector2(0, -50), v, false, Color("8fff7a"))
 
 
 func add_gold(v: int) -> void:
@@ -1012,7 +1070,7 @@ func _epic_passive() -> Dictionary:
 func gen_cards(n: int, luck: int) -> Array:
 	var pool := []
 	var owned_tags := weapons.tags_owned()
-	var new_weapon_ok := weapons.weapons.size() < Upgrades.MAX_WEAPONS
+	var new_weapon_ok := weapons.weapons.size() < max_weapons
 	var new_passive_ok := weapons.passives.size() < Upgrades.MAX_PASSIVES
 	for w in weapons.weapons:
 		if Upgrades.is_evolution(w.id):
@@ -1263,7 +1321,7 @@ func chief_killed(mb: MiniBoss) -> void:
 
 ## Životy bosse podle úrovně hrdiny a počtu dobytých krajů (náčelník má jejich část).
 func boss_hp() -> float:
-	return (600.0 + 70.0 * level) * (1.0 + tier * 0.22)
+	return (600.0 + 70.0 * level) * (1.0 + tier * 0.22) * (1.3 if heat >= 10 else 1.0)
 
 
 func start_boss() -> void:
@@ -1306,6 +1364,7 @@ func _build_palisade() -> void:
 	for i in n:
 		var a := TAU * i / n
 		var s := Baker.sprite("prop:kul")
+		palisade.append(s)
 		s.position = arena_center + Vector2(cos(a), sin(a)) * (arena_radius + 14.0)
 		s.scale *= randf_range(0.9, 1.05)
 		entity_layer.add_child(s)
@@ -1354,30 +1413,110 @@ func win() -> void:
 	if boss_time <= 60.0:
 		stars += 1
 	var reward := 40 + tier * 10 + stars * 15
-	var total := int((gold_run + reward) * (1.0 + Game.meta_value("m_gold")))
-	var first := Game.conquer(region_id, stars)
+	var first := false
+	var heat_up := false
+	var daily_gold := 0
+	if daily.is_empty():
+		first = Game.conquer(region_id, stars)
+		heat_up = Game.heat_won(region_id, heat)
+	else:
+		# denní výzva nedobývá kraj, má vlastní odměnu (jen za první výhru dne)
+		reward = 0
+		daily_gold = Game.daily_result(true, time_total)
+	var total := int((gold_run + reward) * (1.0 + Game.meta_value("m_gold")) * (1.0 + ModifierDefs.HEAT_GOLD * heat)) + daily_gold
 	var new_heroes := Game.check_hero_unlocks()
+	endless_gold0 = gold_run
 	Game.add_gold(total)
 	Game.add_stat("kills", kills)
 	Game.add_stat("runs", 1)
 	Game.save_game()
 	Sfx.stop_music()
 	Sfx.play("win")
-	overlay.show_win(stars, total, first)
+	if not daily.is_empty():
+		overlay.show_daily_win(total, daily_gold)
+	else:
+		overlay.show_win(stars, total, first, heat_up)
 	if autoplay:
-		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d zastavení=%d hrdina=%s%s" % [stars, total, time_total, boss_time, level, kills, stops, hero_id, (" odemčen " + ",".join(new_heroes)) if not new_heroes.is_empty() else ""])
+		print("VÝHRA: hvězdy=%d zlato=%d čas=%.0f boss=%.0fs lvl=%d zabito=%d zastavení=%d hrdina=%s žár=%d%s" % [stars, total, time_total, boss_time, level, kills, stops, hero_id, heat, (" odemčen " + ",".join(new_heroes)) if not new_heroes.is_empty() else ""])
+		if "--endless" in OS.get_cmdline_user_args() and daily.is_empty():
+			await get_tree().create_timer(0.5, true).timeout
+			start_endless()
+			return
 		if "--quit-at-end" in OS.get_cmdline_user_args():
 			get_tree().quit()
 		_soak_leave()
 
 
+# ---------------------------------------------------------------- nekonečný boj (M9)
+
+## Po výhře nad bossem: palisáda zmizí, vlny dál houstnou a každé 2 minuty
+## přijde náčelník. Skóre je čas přežití, zlato se sbírá dál.
+func start_endless() -> void:
+	if state != State.WIN or not daily.is_empty():
+		return
+	endless = true
+	endless_t = 0.0
+	next_chief_t = ModifierDefs.ENDLESS_CHIEF_EVERY
+	overlay.hide_all()
+	get_tree().paused = false
+	arena_radius = 0.0
+	ground_fx.arena_r = 0.0
+	for s: Sprite2D in palisade:
+		if is_instance_valid(s):
+			var tw := s.create_tween()
+			tw.tween_property(s, "scale:y", 0.01, 0.3)
+			tw.tween_callback(s.queue_free)
+	palisade.clear()
+	for k in chunks.keys():
+		for s in chunks[k]:
+			if is_instance_valid(s):
+				s.modulate.a = 1.0
+	if boss:
+		boss.queue_free()
+		boss = null
+	var ztw := camera.create_tween()
+	ztw.tween_property(camera, "zoom", Vector2.ONE * 0.92, 1.0).set_trans(Tween.TRANS_SINE)
+	director.group_t = 0.5
+	# události kraje už proběhly, v nekonečnu chodí jen náčelník každé 2 minuty
+	for ev in director.events:
+		ev.done = true
+	state = State.PLAY
+	Sfx.start_music("battle")
+	var rec := Game.endless_record(region_id)
+	banner("Nekonečný boj!", Color("ff8a2a"), "Rekord kraje: %d:%02d" % [int(rec) / 60, int(rec) % 60] if rec > 0.0 else "Vydrž co nejdéle, každé 2 minuty přijde náčelník")
+	Game.note("nekonečný boj " + region_id)
+
+
+func _end_endless() -> void:
+	state = State.LOSE
+	player.hp = 0.0
+	var total := int((gold_run - endless_gold0) * (1.0 + Game.meta_value("m_gold")) * (1.0 + ModifierDefs.HEAT_GOLD * heat))
+	var is_new := Game.set_endless_record(region_id, endless_t)
+	Game.add_gold(total)
+	Game.add_stat("kills", kills)
+	Game.save_game()
+	Sfx.stop_music()
+	Sfx.play("win" if is_new else "lose")
+	player.body.modulate = Color(0.5, 0.5, 0.5)
+	overlay.show_endless_end(endless_t, Game.endless_record(region_id), is_new, total)
+	if autoplay:
+		print("NEKONEČNO: přežito %.0f s, rekord=%s, zlato=%d, lvl=%d" % [endless_t, str(is_new), total, level])
+		if "--quit-at-end" in OS.get_cmdline_user_args():
+			get_tree().quit()
+
+
 func lose() -> void:
 	if state == State.WIN or state == State.LOSE:
+		return
+	if endless:
+		_end_endless()
 		return
 	state = State.LOSE
 	_perf_verdict()
 	player.hp = 0.0
-	var total := int(gold_run * (1.0 + Game.meta_value("m_gold")))
+	if not daily.is_empty():
+		Game.daily_result(false, time_total)
+	var total := int(gold_run * (1.0 + Game.meta_value("m_gold")) * (1.0 + ModifierDefs.HEAT_GOLD * heat))
 	Game.add_gold(total)
 	Game.add_stat("kills", kills)
 	Game.add_stat("defeats", 1)
@@ -1424,6 +1563,8 @@ func leave(action: String) -> void:
 	# kresby nepřátel, bosse, dekorací a nástrah tohoto kraje se při dalším
 	# vstupu upečou znovu; ikony, hrdina a efekty zůstávají
 	Baker.purge(["e:", "b:", "prop:", "hz:", "ev:"])
+	if action != "retry":
+		Game.daily_run = {}
 	finished.emit(action)
 
 

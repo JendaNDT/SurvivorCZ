@@ -35,6 +35,9 @@ func spawn(id: String, pos: Vector2, opts: Dictionary = {}) -> Enemy:
 	e.spd = d.spd * randf_range(0.9, 1.1) * b.enemy_speed_mult()
 	e.dmg = d.dmg * b.enemy_dmg_mult()
 	var vs := 1.0
+	if b.has_mod("obri"):
+		e.r *= 1.25
+		vs = 1.35
 	if opts.get("mini", false):
 		e.mini = true
 		e.max_hp *= 0.3

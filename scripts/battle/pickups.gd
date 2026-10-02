@@ -126,6 +126,8 @@ func _collect(p: Pick) -> void:
 		"xp0", "xp1", "xp2":
 			xp_count -= 1
 			b.add_xp(p.value)
+			if b.has_mod("elixir_leci"):
+				b.heal(0.5 * p.value, true)
 			combo = mini(combo + 1, 14)
 			combo_t = 0.45
 			Sfx.play("pickup", -10.0, 0.03, 0.03, 1.0 + combo * 0.045)

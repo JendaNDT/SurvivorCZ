@@ -58,7 +58,7 @@ func init(battle: Battle) -> void:
 
 
 func can_dash() -> bool:
-	return dash_cd <= 0.0 and dash_t <= 0.0
+	return dash_cd <= 0.0 and dash_t <= 0.0 and not b.has_mod("bez_uskoku")
 
 
 func dash() -> void:
